@@ -9,7 +9,7 @@ int main(int argc, char *argv[])
     int n;
     cout << "introduce la precision del calculo (n > 0): ";
     cin >> n;
-    double PI25DT = 3.141592653589793238462643;
+    const double PI25DT = 3.141592653589793238462643;
     double h = 1.0 / (double) n;
     double sum = 0.0;
     for (int i = 1; i <= n; i++) {
