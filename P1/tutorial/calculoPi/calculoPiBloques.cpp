@@ -33,7 +33,7 @@ int main(int argc, char *argv[])
     double h = 1.0 / (double)n, 
            sum = 0.0, 
            sumLocal = 0.0;
-    sizeBloque = ceil((double)n / size);
+    sizeBloque = ceil((double)n / size); // tamaño del bloque
 
     for (int i = rank * sizeBloque; i < (rank + 1) * sizeBloque && i < n; i++) { // reparto por bloques
         double x = h * ((double)i + 1.0 - 0.5);
@@ -50,10 +50,14 @@ int main(int argc, char *argv[])
               ,0 // rango del proceso raiz
               ,MPI_COMM_WORLD); // Comunicador por el que se recibe
 
-    // El proceso 0 imprime el resultado
-    if (rank == 0) {
-        cout << "El valor aproximado de PI es: " << sum << ", con un error de " << fabs(sum - PI25DT) << endl;
-    }
+    // El proceso 0 envía el resultado al resto de procesos
+    MPI_Bcast(&sum // referencia al vector de elementos a enviar
+             ,1 // tamaño del vector a enviar
+             ,MPI_DOUBLE // tipo de dato que envia
+             ,0 // rango del proceso raiz
+             ,MPI_COMM_WORLD); // Comunicador por el que se recibe
+
+    cout << "Proceso: " << rank << " --> El valor aproximado de PI es: " << sum << ", con un error de " << fabs(sum - PI25DT) << endl;
  
     MPI_Finalize();
     return 0;
