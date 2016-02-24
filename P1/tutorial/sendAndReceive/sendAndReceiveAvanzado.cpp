@@ -29,7 +29,7 @@ int main(int argc, char *argv[])
                 ,MPI_COMM_WORLD // Comunicador por el que se recibe
                 ,&estado); // estructura informativa del estado
         cout << "Soy el proceso " << rank << " y he recibido " << contador << endl;
-    } else { // Los demás procesos reciben y envían
+    } else { // El resto de procesos reciben y envíann
         // Recibe mensaje
         MPI_Recv(&contador // Referencia al vector donde se almacenara lo recibido
                 ,1 // tamaño del vector a recibir

@@ -18,7 +18,7 @@ int main(int argc, char *argv[])
                 ,MPI_INT // Tipo de dato que envias
                 ,rank + 1 // pid del proceso destino
                 ,0 // etiqueta
-                ,MPI_COMM_WORLD); //Comunicador por el que se manda
+                ,MPI_COMM_WORLD); // Comunicador por el que se manda
     } else if (rank == size - 1) { // El último proceso solo recibe
         // Recibe mensaje
         MPI_Recv(&contador // Referencia al vector donde se almacenara lo recibido
@@ -39,14 +39,13 @@ int main(int argc, char *argv[])
                 ,MPI_COMM_WORLD // Comunicador por el que se recibe
                 ,&estado); // estructura informativa del estado
         cout << "Soy el proceso " << rank << " y he recibido " << contador << endl;
-        contador++;
         // Envia mensaje
         MPI_Send(&rank // referencia al vector de elementos a enviar
                 ,1 // tamaño del vector a enviar
                 ,MPI_INT // Tipo de dato que envias
                 ,rank + 1 // pid del proceso destino
                 ,0 // etiqueta
-                ,MPI_COMM_WORLD); //Comunicador por el que se manda
+                ,MPI_COMM_WORLD); // Comunicador por el que se manda
     }
  
     MPI_Finalize();
