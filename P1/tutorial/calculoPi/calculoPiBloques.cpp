@@ -6,7 +6,7 @@ using namespace std;
 
 int main(int argc, char *argv[]) 
 {
-    int n, rank, size;
+    int n, rank, size, sizeBloque;
     const double PI25DT = 3.141592653589793238462643;
     MPI_Status estado;
  
@@ -33,8 +33,9 @@ int main(int argc, char *argv[])
     double h = 1.0 / (double)n, 
            sum = 0.0, 
            sumLocal = 0.0;
+    sizeBloque = ceil((double)n / size);
 
-    for (int i = rank; i < n; i += size) { // reparto cíclico
+    for (int i = rank * sizeBloque; i < (rank + 1) * sizeBloque && i < n; i++) { // reparto por bloques
         double x = h * ((double)i + 1.0 - 0.5);
         sumLocal += (4.0 / (1.0 + x * x));
     }
