@@ -43,14 +43,20 @@ int main(int argc, char *argv[])
     }
  
     // Creacion y relleno de los vectores
-    vector<long> VectorA, VectorB, VectorLocalA, VectorLocalB;
+    vector<long> VectorA, VectorLocalA, VectorLocalB;
     VectorA.resize(tama, 0);
-    VectorB.resize(tama, 0);
     VectorLocalA.resize(tama / size, 0);
     VectorLocalB.resize(tama / size, 0);
-    for (long i = 0; i < tama; i++) {
-        VectorA[i] = i + 1; // Vector A recibe valores 1, 2, 3, ..., tama
-        VectorB[i] = (i + 1) * 10; // Vector B recibe valores 10, 20, 30, ..., tama*10
+
+    if (rank == 0) { // El proceso 0 inicializa el vector
+        for (long i = 0; i < tama; i++) {
+            VectorA[i] = i + 1; // Vector A recibe valores 1, 2, 3, ..., tama
+        }
+    }
+
+    // Cada proceso inicializa su vector B con los valores que tendría del grande
+    for (long i = 0, j = tama / size * rank; i < tama / size; i++, j++) {
+        VectorLocalB[i] = (j + 1) * 10; // Vector B recibe valores 10, 20, 30, ..., tama*10
     }
 
     // Repartir VectorA
@@ -58,16 +64,6 @@ int main(int argc, char *argv[])
                ,tama / size // tamaño del vector a enviar
                ,MPI_LONG // tipo de dato que envia
                ,&VectorLocalA[0] // referencia al vector donde se almacenarán los datos recibidos
-               ,tama / size // tamaño del vector a recibir
-               ,MPI_LONG // tipo de dato que recibe
-               ,0 // rango del proceso raiz
-               ,MPI_COMM_WORLD); // Comunicador por el que se realiza la acción
-
-    // Repartir VectorB
-    MPI_Scatter(&VectorB[0] // referencia al vector de elementos a enviar
-               ,tama / size // tamaño del vector a enviar
-               ,MPI_LONG // tipo de dato que envia
-               ,&VectorLocalB[0] // referencia al vector donde se almacenarán los datos recibidos
                ,tama / size // tamaño del vector a recibir
                ,MPI_LONG // tipo de dato que recibe
                ,0 // rango del proceso raiz
