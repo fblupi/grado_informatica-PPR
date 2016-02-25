@@ -8,7 +8,6 @@ int main(int argc, char *argv[])
 {
     int n, rank, size, sizeBloque;
     const double PI25DT = 3.141592653589793238462643;
-    MPI_Status estado;
  
     MPI_Init(&argc, &argv); // Inicializamos la comunicacion de los procesos
     MPI_Comm_size(MPI_COMM_WORLD, &size); // Obtenemos el número total de procesos

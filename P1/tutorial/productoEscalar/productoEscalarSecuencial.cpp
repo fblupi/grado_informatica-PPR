@@ -8,8 +8,8 @@ int main(int argc, char *argv[])
     int tama;
  
     if (argc < 2) {
-    cout << "No se ha especificado numero de elementos, por defecto sera " << 100;
-    cout << "\n Uso: <ejecutable> <cantidad>" << endl;
+        cout << "No se ha especificado numero de elementos, por defecto sera " << 100;
+        cout << "\n Uso: <ejecutable> <cantidad>" << endl;
         tama = 100;
     } else {
         tama = atoi(argv[1]);
