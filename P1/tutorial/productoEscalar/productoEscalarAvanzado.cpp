@@ -48,12 +48,9 @@ int main(int argc, char *argv[])
     VectorB.resize(tama, 0);
     VectorLocalA.resize(tama / size, 0);
     VectorLocalB.resize(tama / size, 0);
-
-    if (rank == 0) { // El proceso 0 inicializa el vector
-        for (long i = 0; i < tama; i++) {
-            VectorA[i] = i + 1; // Vector A recibe valores 1, 2, 3, ..., tama
-            VectorB[i] = (i + 1) * 10; // Vector B recibe valores 10, 20, 30, ..., tama*10
-        }
+    for (long i = 0; i < tama; i++) {
+        VectorA[i] = i + 1; // Vector A recibe valores 1, 2, 3, ..., tama
+        VectorB[i] = (i + 1) * 10; // Vector B recibe valores 10, 20, 30, ..., tama*10
     }
 
     // Repartir VectorA
