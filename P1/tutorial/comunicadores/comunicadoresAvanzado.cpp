@@ -58,7 +58,7 @@ int main(int argc, char *argv[]) {
 
     // Comprobar valores
     if (color == 1) {
-        cout << "Rango global: " << rank << " --> Dato: " << dato << endl;
+        cout << "Global: " << rank << " --> Dato: " << dato << endl;
     }
 
     MPI_Finalize();
