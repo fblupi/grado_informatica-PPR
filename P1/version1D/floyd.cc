@@ -5,15 +5,22 @@
 #include "mpi.h"
 
 using namespace std;
-
-int pasarFilaALocal(int localSize, int globalIndex) {
-  return globalIndex % localSize;
+/*
+int pasarFilaALocal(int tamaBloque, int indiceGlobal) {
+  return indiceGlobal % tamaBloque;
 }
 
-int pasarFilaAGlobal(int rank, int localSize, int localIndex) {
-  return rank * localSize + localIndex;
+int pasarFilaAGlobal(int rank, int tamaBloque, int indiceLocal) {
+  return rank * tamaBloque + indiceLocal;
 }
 
+bool filaMePertenece(int rank, int, tamaBloque, int fila) {
+  if (fila >= pasarFilaAGlobal(0) && fila < pasarFilaAGlobal(tamaBloque))
+    return true;
+  else 
+    return false;
+}
+*/
 int main (int argc, char *argv[]) 
 {
   int rank, size, tama;
@@ -30,25 +37,32 @@ int main (int argc, char *argv[])
     return -1;
   }
 
-  Graph G;
-  int nverts;
+  
+  int nverts, tamaBloque;
+  int *M, *filaK;
   if (rank == 0) {
+    Graph G;
     G.lee(argv[1]);
-    //cout << "El Grafo de entrada es:" << endl;
-    //G.imprime();
+    cout << "El Grafo de entrada es:" << endl;
+    G.imprime();
     nverts = G.vertices;
   }
 
   // Enviar el número de vértices a todos los procesos
   MPI_Bcast(&nverts, 1, MPI_INT, 0, MPI_COMM_WORLD);
   cout << "Proceso " << rank << " recibe tamaño " << nverts << endl;
-
+/*
   double t = MPI_Wtime();
-  /*
+
   // BUCLE PPAL DEL ALGORITMO
-  int i,j,k,vikj;
+  int i, j, k, vikj;
   for (k = 0; k < nverts; k++) {
-    for (i = 0; i < nverts; i++) {
+    if (filaMePertenece, tamaBloque, k) {
+      filaK = M[k];
+      MPI_Bcast(&filaK, nverts, MPI_INT, 0, MPI_COMM_WORLD);
+    }
+    MPI_Bcast(&M[pasarFilaALocal(k)], nverts, MPI_INT, 0, MPI_COMM_WORLD);
+    for (i = pasarFilaAGlobal(0); i < pasarFilaAGlobal(tamaBloque); i++) {
       for (j = 0; j < nverts; j++) {
         if (i != j && i != k && j != k) {
           vikj = G.arista(i, k) + G.arista(k, j);
@@ -58,13 +72,16 @@ int main (int argc, char *argv[])
       }
     }
   }
-  */
+
   t = MPI_Wtime() - t;
   MPI_Finalize();
  
   //cout << endl << "EL Grafo con las distancias de los caminos más cortos es:" << endl << endl;
   //G.imprime();
   cout << "Tiempo gastado= " << t<< endl << endl;
+  */
+  MPI_Finalize();
+
 }
 
 

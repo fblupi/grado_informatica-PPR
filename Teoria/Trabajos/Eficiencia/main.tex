@@ -13,7 +13,7 @@
 \newcommand{\myLocation}{Granada}
 \newcommand{\myTime}{\today}
 \newcommand{\myTitle}{Trabajo propuesto}
-\newcommand{\mySubtitle}{Cómo afecta el tamaño del problema y el número de procesadores a la eficiencia de un algoritmo paralelo}
+\newcommand{\mySubtitle}{Cómo afecta el tamaño del problema y el número de procesos a la eficiencia de un algoritmo paralelo}
 \newcommand{\mySubject}{Programación Paralela}
 \newcommand{\myYear}{2015-2016}
 
@@ -60,7 +60,7 @@
 
 \section{Planteamiento del problema}
 
-Se pretende demostrar por qué la eficiencia (E) tiende a aumentar al aumentar el tamaño del problema (N) y a disminuir al aumentar el número de procesadores (P).
+Se pretende demostrar por qué la eficiencia (E) tiende a aumentar al aumentar el tamaño del problema (N) y a disminuir al aumentar el número de procesos (P).
 
 \section{Demostración}
 
@@ -100,7 +100,7 @@ La ganancia de velocidad (S) se calcula como la división del algoritmo secuenci
 	S = \dfrac{T_{1}}{T_{p}} = \dfrac{t_{c}N^{3}}{\dfrac{t_{c}N^{3}}{P} + 2t_{s} + t_{w}4N^{2}}
 \end{equation}
 
-Y la eficiencia (E), finalmente, se calcularía como la división entre la ganancia de velocidad (S) entre el número de procesadores (P):
+Y la eficiencia (E), finalmente, se calcularía como la división entre la ganancia de velocidad (S) entre el número de procesos (P):
 
 \begin{equation}
 	E = \dfrac{S}{P} = \dfrac{t_{c}N^{3}}{P( \dfrac{t_{c}N^{3}}{P} + 2t_{s} + t_{w}4N^{2})} = \dfrac{N^{3}t_{c}}{N^{3}t_{c} + 2Pt_{s} + 4PN^{2}t_{w}}
@@ -112,7 +112,7 @@ En esta función resultante contamos con cinco variables:
 	\item $t_{s}$: tiempo de inicialización de comunicación.
 	\item $t_{w}$: tiempo de comunicación por palabra.
 	\item N: tamaño de la matriz.
-	\item P: número de procesadores.
+	\item P: número de procesos.
 \end{itemize}
 
 Las tres primeras no varían, y se va a suponer que $t_{c}$ = 1 y $t_{s}$ = $t_{w}$ = 0.5. Por lo que vamos a utilizar la siguiente función para obtener los tiempos variando N y P:
@@ -123,21 +123,30 @@ Las tres primeras no varían, y se va a suponer que $t_{c}$ = 1 y $t_{s}$ = $t_{
 
 \subsection{Mediciones y resultados}
 
-Se toman tiempos con 10, 40, 70 y 100 procesadores y con tamaños de 100, 400, 700 y 1000. Obteniendo los siguientes resultados:
+Se toman tiempos con 10, 40, 70 y 100 procesos y con tamaños de 100, 400, 700 y 1000. Obteniendo los siguientes resultados:
 
 \begin{figure}[H]
 	\centering
-	\includegraphics[width=14cm]{imagenes/grafico1}
-	\caption{La eficiencia disminuye conforme se aumenta el número de procesadores}
+	\includegraphics[width=15cm]{imagenes/grafico1}
+	\caption{La eficiencia disminuye conforme se aumenta el número de procesos}
 	\label{fig:grafico1}
 \end{figure}
 
 
 \begin{figure}[H]
 	\centering
-	\includegraphics[width=14cm]{imagenes/grafico2}
+	\includegraphics[width=15cm]{imagenes/grafico2}
 	\caption{La eficiencia aumenta conforme se aumenta el tamaño del problema}
 	\label{fig:grafico2}
 \end{figure}
+
+\section{Conclusiones}
+
+La eficiencia se define como la \textbf{fracción de tiempo en el que los procesos realizan un trabajo útil}. 
+\\ \\
+Por ello, es obvio pensar que a más procesos, más tiempo de comunicación y, por tanto, menos tiempo de trabajo útil. Los resultados obtenidos son coherentes respecto a esta afirmación y podemos ver como para todos los tamaños, la eficiencia disminuye.
+\\ \\
+Al mismo tiempo, se puede presuponer que, de acuerdo a la definición que se da de eficiencia, al aumentar el tamaño del problema más carga de trabajo útil tendrán los procesos y por tanto mayor será el porcentaje de su tiempo dedicado a ello.
+
 
 \end{document}
