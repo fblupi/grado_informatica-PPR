@@ -5,29 +5,14 @@
 #include "mpi.h"
 
 using namespace std;
-/*
-int pasarFilaALocal(int tamaBloque, int indiceGlobal) {
-  return indiceGlobal % tamaBloque;
-}
 
-int pasarFilaAGlobal(int rank, int tamaBloque, int indiceLocal) {
-  return rank * tamaBloque + indiceLocal;
-}
-
-bool filaMePertenece(int rank, int, tamaBloque, int fila) {
-  if (fila >= pasarFilaAGlobal(0) && fila < pasarFilaAGlobal(tamaBloque))
-    return true;
-  else 
-    return false;
-}
-*/
 int main (int argc, char *argv[]) 
 {
-  int rank, size, tama;
-
   /**
     * Paso 1: Iniciar MPI y obtener tamaño e id para cada proceso
     */
+  int rank, size, tama;
+
   MPI_Init(&argc, &argv); // Inicializamos la comunicacion de los procesos
   MPI_Comm_size(MPI_COMM_WORLD, &size); // Obtenemos el número total de procesos
   MPI_Comm_rank(MPI_COMM_WORLD, &rank); // Obtenemos el valor de nuestro identificador
@@ -50,7 +35,7 @@ int main (int argc, char *argv[])
   int nverts, tamaLocal, tamaBloque;
   if (rank == 0) { // Solo lo hace un proceso
     G.lee(argv[1]);
-    cout << "El Grafo de entrada es:" << endl;
+    //cout << "El Grafo de entrada es:" << endl;
     G.imprime();
     nverts = G.vertices;
   }
@@ -64,52 +49,59 @@ int main (int argc, char *argv[])
     * Paso 5: Reservar espacio para matriz y fila k
     */
   tamaLocal = nverts * nverts / size;
+  tamaBloque = nverts / size;
   int * M = new int [tamaLocal], 
-      * filaK = new int [nverts];
+      * K = new int [nverts];
 
   /**
     * Paso 6: Repartir matriz entre los procesos
     */
-  MPI_Scatter(G.ptrMatriz(), tamaLocal, MPI_INT, M, tamaLocal, MPI_INT, 0, MPI_COMM_WORLD);
+  MPI_Scatter(G.ptrMatriz(), tamaLocal, MPI_INT, &M[0], tamaLocal, MPI_INT, 0, MPI_COMM_WORLD);
 
-/*
+  /**
+    * Paso 7: Bucle principal del algoritmo
+    */
+  int i, j, k, vikj, ini,
+      iIniLocal = rank * tamaBloque,
+      iFinLocal = (rank + 1) * tamaBloque;
+
   double t = MPI_Wtime();
 
-  // BUCLE PPAL DEL ALGORITMO
-  int i, j, k, vikj;
   for (k = 0; k < nverts; k++) {
-    if (filaMePertenece, tamaBloque, k) {
-      filaK = M[k];
-      MPI_Bcast(&filaK, nverts, MPI_INT, 0, MPI_COMM_WORLD);
+    if (k >= iIniLocal && k < iFinLocal) { // La fila K pertenece al proceso
+      K = &M[(k % tamaBloque) * nverts];
     }
-    MPI_Bcast(&M[pasarFilaALocal(k)], nverts, MPI_INT, 0, MPI_COMM_WORLD);
-    for (i = pasarFilaAGlobal(0); i < pasarFilaAGlobal(tamaBloque); i++) {
+    MPI_Bcast(K, nverts, MPI_INT, 0, MPI_COMM_WORLD);
+    for (i = iIniLocal; i < iFinLocal; i++) {
+      ini = i * nverts % tamaLocal; // inicio de la fila (en vector local)
       for (j = 0; j < nverts; j++) {
-        if (i != j && i != k && j != k) {
-          vikj = G.arista(i, k) + G.arista(k, j);
-          vikj = min(vikj, G.arista(i, j));
-          G.inserta_arista(i, j, vikj);   
+        if (i != j && i != k && j != k) { // No iterar sobre celdas de valor 0
+          vikj = M[ini + k] + K[j];
+          vikj = min(vikj, M[ini + j]);
+          M[ini + j] = vikj;
+          //cout << "(" << i << ", " << j << ", " << k << ") = " << vikj << " --> ik = " << M[ini + k] << " ,kj = " << K[j] << ", ij = " << M[ini + j] << endl;
         }
       }
     }
   }
 
   t = MPI_Wtime() - t;
-  */
 
   /**
-    * Paso N - 1: Recoger resultados en la matriz
+    * Paso 8: Recoger resultados en la matriz
     */
   MPI_Gather(&M[0], tamaLocal, MPI_INT, G.ptrMatriz(), tamaLocal, MPI_INT, 0, MPI_COMM_WORLD);
 
   /**
-    * Paso N: Finalizar e imprimir resultados
+    * Paso 9: Finalizar e imprimir resultados
     */
   MPI_Finalize();
  
-  //cout << endl << "EL Grafo con las distancias de los caminos más cortos es:" << endl << endl;
-  //G.imprime();
-  //cout << "Tiempo gastado= " << t<< endl << endl;
+  if (rank == 0) { // Solo lo hace un proceso
+    cout << endl << "El Grafo con las distancias de los caminos más cortos es:" << endl << endl;
+    G.imprime();
+    cout << "Tiempo gastado = " << t << endl << endl;
+  }
 
 }
 
