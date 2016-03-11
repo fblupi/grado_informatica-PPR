@@ -36,12 +36,10 @@ int main (int argc, char *argv[])
     MPI_Finalize();
     return -1;
   }
-
   
-  int nverts, tamaBloque;
-  int *M, *filaK;
+  Graph G;
+  int nverts, tamaMatriz, tamaBloque;
   if (rank == 0) {
-    Graph G;
     G.lee(argv[1]);
     cout << "El Grafo de entrada es:" << endl;
     G.imprime();
@@ -51,6 +49,13 @@ int main (int argc, char *argv[])
   // Enviar el número de vértices a todos los procesos
   MPI_Bcast(&nverts, 1, MPI_INT, 0, MPI_COMM_WORLD);
   cout << "Proceso " << rank << " recibe tamaño " << nverts << endl;
+  tamaMatriz = nverts * nverts / size;
+
+  int * M = new int [tamaMatriz], 
+      * filaK = new int [nverts];
+
+  MPI_Scatter(G.ptrMatriz(), tamaMatriz, MPI_INT, M, tamaMatriz, MPI_INT, 0, MPI_COMM_WORLD);
+
 /*
   double t = MPI_Wtime();
 

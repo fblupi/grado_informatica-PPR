@@ -60,15 +60,15 @@ void Graph::lee(char *filename)
 
   // Obten el numero de vertices
   char buf[BUF_SIZE];
-  infile.getline(buf,BUF_SIZE, '\n');
+  infile.getline(buf, BUF_SIZE, '\n');
   vertices = atoi(buf);
   A = new int[vertices * vertices];
  
   int i, j;
   for (i = 0; i < vertices; i++)
     for (j = 0; j < vertices; j++)
-      if (i==j) A[i*vertices+j]=0;
-      else A[i*vertices+j]=INF;
+      if (i == j) A[i * vertices + j]=0;
+      else A[i * vertices + j]=INF;
     
   while (infile.getline(buf, BUF_SIZE) && infile.good() && !infile.eof()) {
     char *vertname2 = strpbrk(buf, " \t");
@@ -81,4 +81,7 @@ void Graph::lee(char *filename)
     A[i * vertices + j] = weight;
   }
 }
-
+//***********************************************************************
+int * Graph::ptrMatriz() {
+  return &A[0];
+}
