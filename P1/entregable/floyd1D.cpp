@@ -35,7 +35,7 @@ int main (int argc, char *argv[])
   int nverts, tamaLocal, tamaBloque;
   if (rank == 0) { // Solo lo hace un proceso
     G.lee(argv[1]);
-    //cout << "El Grafo de entrada es:" << endl;
+    cout << "El grafo de entrada es:" << endl;
     G.imprime();
     nverts = G.vertices;
   }
@@ -50,8 +50,7 @@ int main (int argc, char *argv[])
     */
   tamaLocal = nverts * nverts / size;
   tamaBloque = nverts / size;
-  int M[tamaBloque][nverts], 
-      K[nverts];
+  int M[tamaBloque][nverts], K[nverts];
 
   /**
     * Paso 6: Repartir matriz entre los procesos
@@ -61,7 +60,7 @@ int main (int argc, char *argv[])
   /**
     * Paso 7: Bucle principal del algoritmo
     */
-  int i, j, k, vikj,
+  int i, j, k, vikj, iGlobal,
       iniLocal = rank * tamaBloque, // fila inicial en global
       finLocal = (rank + 1) * tamaBloque; // fila final en global
 
@@ -73,8 +72,9 @@ int main (int argc, char *argv[])
     }
     MPI_Bcast(&K, nverts, MPI_INT, k / tamaBloque, MPI_COMM_WORLD);
     for (i = 0; i < tamaBloque; i++) { // valores locales
+      iGlobal = rank * tamaBloque + i;
       for (j = 0; j < nverts; j++) {
-        if (i != j && i != k && j != k) { // No iterar sobre celdas de valor 0
+        if (iGlobal != j && iGlobal != k && j != k) { // No iterar sobre celdas de valor 0
           vikj = M[i][k] + K[j];
           vikj = min(vikj, M[i][j]);
           M[i][j] = vikj;
@@ -84,12 +84,6 @@ int main (int argc, char *argv[])
   }
 
   t = MPI_Wtime() - t;
-
-  for (int i = 0; i < tamaBloque; i++) {
-    for (int j = 0; j < nverts; j++) {
-      cout << "[P" << rank << "] --> M[" << i << "][" << j << "] = " << M[i][j] << endl;
-    }
-  }
 
   /**
     * Paso 8: Recoger resultados en la matriz
@@ -102,9 +96,8 @@ int main (int argc, char *argv[])
   MPI_Finalize();
  
   if (rank == 0) { // Solo lo hace un proceso
-    cout << endl << "El Grafo con las distancias de los caminos más cortos es:" << endl << endl;
+    cout << endl << "El grafo con las distancias de los caminos más cortos es:" << endl << endl;
     G.imprime();
     cout << "Tiempo gastado = " << t << endl << endl;
   }
-
 }
