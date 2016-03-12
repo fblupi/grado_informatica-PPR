@@ -4,6 +4,8 @@
 #include "Graph.h"
 #include "mpi.h"
 
+#define PRINT_ALL
+
 using namespace std;
 
 int main (int argc, char *argv[]) 
@@ -35,9 +37,22 @@ int main (int argc, char *argv[])
   int nverts, tamaLocal, tamaBloque;
   if (rank == 0) { // Solo lo hace un proceso
     G.lee(argv[1]);
-    cout << "El grafo de entrada es:" << endl;
-    G.imprime();
+    #ifdef PRINT_ALL
+      cout << "El grafo de entrada es:" << endl;
+      G.imprime();
+    #endif
     nverts = G.vertices;
+  }
+
+  /**
+    * Paso 3.1.: Comprobar si el tamaño del problema es adecuado al número de procesos
+    */
+  if (size > nverts) {
+    if (rank == 0) {
+      cerr << "El número de procesos ha de ser menor o igual al tamaño del problema" << endl;
+    }
+    MPI_Finalize();
+    return -1;
   }
 
   /**
@@ -96,8 +111,12 @@ int main (int argc, char *argv[])
   MPI_Finalize();
  
   if (rank == 0) { // Solo lo hace un proceso
-    cout << endl << "El grafo con las distancias de los caminos más cortos es:" << endl << endl;
-    G.imprime();
-    cout << "Tiempo gastado = " << t << endl << endl;
+    #ifdef PRINT_ALL
+      cout << endl << "El grafo con las distancias de los caminos más cortos es:" << endl;
+      G.imprime();
+      cout << "Tiempo gastado = " << t << endl << endl;
+    #else
+      cout << t << endl;
+    #endif
   }
 }

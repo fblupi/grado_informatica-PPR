@@ -4,6 +4,8 @@
 #include "Graph.h"
 #include "mpi.h"
 
+#define PRINT_ALL
+
 using namespace std;
 
 int main (int argc, char *argv[])
@@ -17,8 +19,10 @@ int main (int argc, char *argv[])
 
   Graph G;
   G.lee(argv[1]);	// Read the Graph
-  cout << "El grafo de entrada es:" << endl;
-  G.imprime();
+  #ifdef PRINT_ALL
+    cout << "El grafo de entrada es:" << endl;
+    G.imprime();
+  #endif
 
   int nverts = G.vertices;
 
@@ -39,7 +43,11 @@ int main (int argc, char *argv[])
   t = MPI_Wtime() - t;
   MPI_Finalize();
 
-  cout << endl << "El grafo con las distancias de los caminos más cortos es:" << endl << endl;
-  G.imprime();
-  cout<< "Tiempo gastado = " << t << endl << endl;
+  #ifdef PRINT_ALL
+    cout << endl << "El grafo con las distancias de los caminos más cortos es:" << endl;
+    G.imprime();
+    cout<< "Tiempo gastado = " << t << endl << endl;
+  #else
+    cout << t << endl;
+  #endif
 }
