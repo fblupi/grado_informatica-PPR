@@ -50,36 +50,34 @@ int main (int argc, char *argv[])
     */
   tamaLocal = nverts * nverts / size;
   tamaBloque = nverts / size;
-  int * M = new int [tamaLocal], 
-      * K = new int [nverts];
+  int M[tamaBloque][nverts], 
+      K[nverts];
 
   /**
     * Paso 6: Repartir matriz entre los procesos
     */
-  MPI_Scatter(G.ptrMatriz(), tamaLocal, MPI_INT, &M[0], tamaLocal, MPI_INT, 0, MPI_COMM_WORLD);
+  MPI_Scatter(G.ptrMatriz(), tamaLocal, MPI_INT, &M[0][0], tamaLocal, MPI_INT, 0, MPI_COMM_WORLD);
 
   /**
     * Paso 7: Bucle principal del algoritmo
     */
-  int i, j, k, vikj, ini,
-      iIniLocal = rank * tamaBloque,
-      iFinLocal = (rank + 1) * tamaBloque;
+  int i, j, k, vikj,
+      iniLocal = rank * tamaBloque, // fila inicial en global
+      finLocal = (rank + 1) * tamaBloque; // fila final en global
 
   double t = MPI_Wtime();
 
   for (k = 0; k < nverts; k++) {
-    if (k >= iIniLocal && k < iFinLocal) { // La fila K pertenece al proceso
-      K = &M[(k % tamaBloque) * nverts];
+    if (k >= iniLocal && k < finLocal) { // La fila K pertenece al proceso
+      copy(M[k % tamaBloque], M[k % tamaBloque] + nverts, K);
     }
-    MPI_Bcast(K, nverts, MPI_INT, 0, MPI_COMM_WORLD);
-    for (i = iIniLocal; i < iFinLocal; i++) {
-      ini = i * nverts % tamaLocal; // inicio de la fila (en vector local)
+    MPI_Bcast(&K, nverts, MPI_INT, k / tamaBloque, MPI_COMM_WORLD);
+    for (i = 0; i < tamaBloque; i++) { // valores locales
       for (j = 0; j < nverts; j++) {
         if (i != j && i != k && j != k) { // No iterar sobre celdas de valor 0
-          vikj = M[ini + k] + K[j];
-          vikj = min(vikj, M[ini + j]);
-          M[ini + j] = vikj;
-          //cout << "(" << i << ", " << j << ", " << k << ") = " << vikj << " --> ik = " << M[ini + k] << " ,kj = " << K[j] << ", ij = " << M[ini + j] << endl;
+          vikj = M[i][k] + K[j];
+          vikj = min(vikj, M[i][j]);
+          M[i][j] = vikj;
         }
       }
     }
@@ -87,10 +85,16 @@ int main (int argc, char *argv[])
 
   t = MPI_Wtime() - t;
 
+  for (int i = 0; i < tamaBloque; i++) {
+    for (int j = 0; j < nverts; j++) {
+      cout << "[P" << rank << "] --> M[" << i << "][" << j << "] = " << M[i][j] << endl;
+    }
+  }
+
   /**
     * Paso 8: Recoger resultados en la matriz
     */
-  MPI_Gather(&M[0], tamaLocal, MPI_INT, G.ptrMatriz(), tamaLocal, MPI_INT, 0, MPI_COMM_WORLD);
+  MPI_Gather(&M[0][0], tamaLocal, MPI_INT, G.ptrMatriz(), tamaLocal, MPI_INT, 0, MPI_COMM_WORLD);
 
   /**
     * Paso 9: Finalizar e imprimir resultados
@@ -104,6 +108,3 @@ int main (int argc, char *argv[])
   }
 
 }
-
-
-
