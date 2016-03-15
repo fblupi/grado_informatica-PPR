@@ -57,11 +57,11 @@ int main (int argc, char *argv[])
     */
   MPI_Datatype MPI_BLOQUE;
   int buffEnvio[nverts][nverts]; // Buffer de envío para almacenar los datos empaquetados
+  int filaP, columnaP, comienzo;
 
   if (rank == 0) {
     MPI_Type_vector(tamaBloque, tamaBloque, nverts, MPI_INT, &MPI_BLOQUE); // Se define el tipo de bloque cuadrado
     MPI_Type_commit(&MPI_BLOQUE); // Se crea el nuevo tipo
-    int filaP, columnaP, comienzo;
     for (int i = 0, posicion = 0; i < size; i++) {
       // Cálculo de la posición de comienzo de cada submatriz
       filaP = i / raizP;
@@ -78,14 +78,54 @@ int main (int argc, char *argv[])
   int M[tamaBloque][tamaBloque]; // Matriz local
   MPI_Scatter(buffEnvio, sizeof(int) * tamaBloque * tamaBloque, MPI_PACKED, M, tamaBloque * tamaBloque, MPI_INT, 0, MPI_COMM_WORLD);
 
-/*
-  for (int i = 0; i < tamaBloque; i++)
-    for (int j = 0; j < tamaBloque; j++)
-      cout << "[P" << rank << "] --> M[" << i << "][" << j << "] = " << M[i][j] << endl;
-*/
-  
+//  for (int i = 0; i < tamaBloque; i++)
+//    for (int j = 0; j < tamaBloque; j++)
+//      cout << "[P" << rank << "] --> M[" << i << "][" << j << "] = " << M[i][j] << endl;
+
   /**
-    * Paso 9: Finalizar e imprimir resultados
+    * Paso 7: Bucle principal del algoritmo
+    */
+
+  double t = MPI_Wtime();
+
+  // Se ejecutaría....
+//  M[0][0] = 14;
+
+  t = MPI_Wtime() - t;
+
+  /**
+    * Paso 8: Recoger resultados en la matriz
+    */
+  MPI_Gather(M, tamaBloque * tamaBloque, MPI_INT, buffEnvio, sizeof(int) * tamaBloque * tamaBloque, MPI_PACKED, 0, MPI_COMM_WORLD);
+
+  /**
+    * Paso 9: Desempaquetar
+    */
+  if (rank == 0) {
+    MPI_Type_vector(tamaBloque, tamaBloque, nverts, MPI_INT, &MPI_BLOQUE); // Se define el tipo de bloque cuadrado
+    MPI_Type_commit(&MPI_BLOQUE); // Se crea el nuevo tipo
+    for (int i = 0, posicion = 0; i < size; i++) {
+      // Cálculo de la posición de comienzo de cada submatriz
+      filaP = i / raizP;
+      columnaP = i % raizP;
+      comienzo = columnaP * tamaBloque + filaP * tamaBloque * tamaBloque * raizP;
+      MPI_Unpack(buffEnvio, sizeof(int) * nverts * nverts, &posicion, G.ptrMatriz() + comienzo, 1, MPI_BLOQUE, MPI_COMM_WORLD);
+    }
+    MPI_Type_free(&MPI_BLOQUE); // Se libera el tipo bloque
+  }
+
+  /**
+    * Paso 10: Finalizar e imprimir resultados
     */
   MPI_Finalize();
+
+  if (rank == 0) { // Solo lo hace un proceso
+    #ifdef PRINT_ALL
+      cout << endl << "El grafo con las distancias de los caminos más cortos es:" << endl;
+      G.imprime();
+      cout << "Tiempo gastado = " << t << endl << endl;
+    #else
+      cout << t << endl;
+    #endif
+  }
 }
