@@ -29,7 +29,7 @@ int main (int argc, char *argv[])
     MPI_Finalize();
     return -1;
   }
-  
+
   /**
     * Paso 3: Crear grafo y obtener número de vértices
     */
@@ -99,12 +99,12 @@ int main (int argc, char *argv[])
     * Paso 9: Finalizar e imprimir resultados
     */
   MPI_Finalize();
- 
+
   if (rank == 0) { // Solo lo hace un proceso
     #ifdef PRINT_ALL
       cout << endl << "El grafo con las distancias de los caminos más cortos es:" << endl;
       G.imprime();
-      cout<< "Tiempo gastado = " << t << endl << endl;
+      cout << "Tiempo gastado = " << t << endl << endl;
     #else
       cout << t << endl;
     #endif

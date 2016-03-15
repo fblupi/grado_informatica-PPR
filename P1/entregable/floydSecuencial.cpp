@@ -46,7 +46,7 @@ int main (int argc, char *argv[])
   #ifdef PRINT_ALL
     cout << endl << "El grafo con las distancias de los caminos más cortos es:" << endl;
     G.imprime();
-    cout<< "Tiempo gastado = " << t << endl << endl;
+    cout << "Tiempo gastado = " << t << endl << endl;
   #else
     cout << t << endl;
   #endif
