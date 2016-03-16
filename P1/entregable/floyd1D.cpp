@@ -35,6 +35,7 @@ int main (int argc, char *argv[])
     */
   Graph G;
   int nverts;
+
   if (rank == 0) { // Solo lo hace un proceso
     G.lee(argv[1]);
     #ifdef PRINT_ALL
@@ -53,8 +54,10 @@ int main (int argc, char *argv[])
     * Paso 5: Reservar espacio para matriz y fila k
     */
   int tamaLocal, tamaBloque;
+
   tamaLocal = nverts * nverts / size;
   tamaBloque = nverts / size;
+  
   int M[tamaBloque][nverts], K[nverts]; // Matriz local y fila k
 
   /**
@@ -66,9 +69,10 @@ int main (int argc, char *argv[])
   /**
     * Paso 7: Bucle principal del algoritmo
     */
-  int i, j, k, vikj, iGlobal,
-      iIniLocal = rank * tamaBloque, // Fila inicial del proceso (valor global)
-      iFinLocal = (rank + 1) * tamaBloque; // Fila final del proceso (valor global)
+  int i, j, k, vikj, iGlobal, iIniLocal, iFinLocal; 
+
+  iIniLocal = rank * tamaBloque; // Fila inicial del proceso (valor global)
+  iFinLocal = (rank + 1) * tamaBloque; // Fila final del proceso (valor global)
 
   double t = MPI_Wtime();
 

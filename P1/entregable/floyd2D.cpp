@@ -36,6 +36,7 @@ int main (int argc, char *argv[])
     */
   Graph G;
   int nverts;
+
   if (rank == 0) { // Solo lo hace un proceso
     G.lee(argv[1]);
     #ifdef PRINT_ALL
@@ -66,8 +67,8 @@ int main (int argc, char *argv[])
   MPI_Comm_split(MPI_COMM_WORLD, colorHorizontal, rank, &commHorizontal);
   MPI_Comm_split(MPI_COMM_WORLD, colorVertical, rank, &commVertical);
 
-  //MPI_Comm_rank(commHorizontal, &rankHorizontal);
-  //MPI_Comm_rank(commVertical, &rankVertical);
+  MPI_Comm_rank(commHorizontal, &rankHorizontal);
+  MPI_Comm_rank(commVertical, &rankVertical);
 
   /**
     * Paso 6: Empaquetar
@@ -92,7 +93,8 @@ int main (int argc, char *argv[])
   /**
     * Paso 7: Distribuir la matriz entre los procesos
     */
-  int M[tamaBloque][tamaBloque]; // Matriz local
+  int M[tamaBloque][tamaBloque], FilK[tamaBloque], ColK[tamaBloque]; // Matriz local
+
   MPI_Scatter(buffEnvio, sizeof(int) * tamaBloque * tamaBloque, MPI_PACKED, M, tamaBloque * tamaBloque, MPI_INT, 0, MPI_COMM_WORLD);
 
 //  for (int i = 0; i < tamaBloque; i++)
@@ -102,11 +104,46 @@ int main (int argc, char *argv[])
   /**
     * Paso 8: Bucle principal del algoritmo
     */
+  int i, j, k, a, vikj, iGlobal, jGlobal, iIniLocal, iFinLocal, jIniLocal, jFinLocal, colorHorizontalLocal, colorVerticalLocal; 
+
+  iIniLocal = colorHorizontal * tamaBloque; // Fila inicial del proceso (valor global)
+  iFinLocal = (colorHorizontal + 1) * tamaBloque; // Fila final del proceso (valor global)
+  jIniLocal = colorVertical * tamaBloque; // Columna inicial del proceso (valor global)
+  jFinLocal = (colorVertical + 1) * tamaBloque; // Columna final del proceso (valor global)
 
   double t = MPI_Wtime();
 
-  // Se ejecutaría....
-//  M[0][0] = 14;
+  for (k = 0; k < nverts; k++) {
+    colorHorizontalLocal = k / tamaBloque;
+    colorVerticalLocal = k % tamaBloque;
+    if (colorHorizontalLocal == colorHorizontal) { // La fila K pertenece al proceso
+      copy(M[colorVerticalLocal], M[colorVerticalLocal] + tamaBloque, FilK);
+      for (int ii = 0; ii < tamaBloque; ii++) {
+        cout << "[P" << rank << "] k: " << k << " --> FilK[" << ii << "] = " << FilK[ii] << endl;
+      }
+    }
+    if (colorVerticalLocal == colorVertical) { // La columna K pertenece al proceso
+      for (a = 0; a < tamaBloque; a++) {
+        ColK[a] = M[a][k];
+      }
+      for (int ii = 0; ii < tamaBloque; ii++) {
+        cout << "[P" << rank << "] k: " << k << " --> ColK[" << ii << "] = " << ColK[ii] << endl;
+      }
+    }
+    MPI_Bcast(FilK, tamaBloque, MPI_INT, colorHorizontalLocal, commVertical);
+    MPI_Bcast(ColK, tamaBloque, MPI_INT, colorVerticalLocal, commHorizontal);
+    for (i = 0; i < tamaBloque; i++) { // Recorrer las filas (valores locales)
+      iGlobal = iIniLocal + i; // Convertir la fila a global
+      for (j = 0; j < tamaBloque; j++) {  // Recorrer las columnas (valores locales)
+        jGlobal = jIniLocal + j;
+        if (iGlobal != jGlobal && iGlobal != k && jGlobal != k) { // No iterar sobre celdas de valor 0
+          vikj = ColK[i] + FilK[j];
+          vikj = min(vikj, M[i][j]);
+          M[i][j] = vikj;
+        }
+      }
+    }
+  }
 
   t = MPI_Wtime() - t;
 
