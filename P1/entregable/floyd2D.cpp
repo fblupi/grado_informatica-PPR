@@ -116,20 +116,15 @@ int main (int argc, char *argv[])
   for (k = 0; k < nverts; k++) {
     colorHorizontalLocal = k / tamaBloque;
     colorVerticalLocal = k % tamaBloque;
-    if (colorHorizontalLocal == colorHorizontal) { // La fila K pertenece al proceso
-      copy(M[colorVerticalLocal], M[colorVerticalLocal] + tamaBloque, FilK);
-      for (int ii = 0; ii < tamaBloque; ii++) {
-        cout << "[P" << rank << "] k: " << k << " --> FilK[" << ii << "] = " << FilK[ii] << endl;
-      }
+    if (k >= iIniLocal && k < iFinLocal) { // La fila K pertenece al proceso
+      copy(M[colorVerticalLocal], M[colorVerticalLocal] + tamaBloque, FilK); // Copia la fila en el vector FilK
     }
-    if (colorVerticalLocal == colorVertical) { // La columna K pertenece al proceso
+    if (k >= jIniLocal && k < jFinLocal) { // La columna K pertenece al proceso
       for (a = 0; a < tamaBloque; a++) {
-        ColK[a] = M[a][k];
-      }
-      for (int ii = 0; ii < tamaBloque; ii++) {
-        cout << "[P" << rank << "] k: " << k << " --> ColK[" << ii << "] = " << ColK[ii] << endl;
+        ColK[a] = M[a][colorVerticalLocal]; // Copia la columna en el vector ColK
       }
     }
+    MPI_Barrier(MPI_COMM_WORLD);
     MPI_Bcast(FilK, tamaBloque, MPI_INT, colorHorizontalLocal, commVertical);
     MPI_Bcast(ColK, tamaBloque, MPI_INT, colorVerticalLocal, commHorizontal);
     for (i = 0; i < tamaBloque; i++) { // Recorrer las filas (valores locales)
@@ -139,7 +134,7 @@ int main (int argc, char *argv[])
         if (iGlobal != jGlobal && iGlobal != k && jGlobal != k) { // No iterar sobre celdas de valor 0
           vikj = ColK[i] + FilK[j];
           vikj = min(vikj, M[i][j]);
-          M[i][j] = vikj;
+          //M[i][j] = vikj;
         }
       }
     }
