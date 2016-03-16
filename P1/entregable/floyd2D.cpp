@@ -97,14 +97,10 @@ int main (int argc, char *argv[])
 
   MPI_Scatter(buffEnvio, sizeof(int) * tamaBloque * tamaBloque, MPI_PACKED, M, tamaBloque * tamaBloque, MPI_INT, 0, MPI_COMM_WORLD);
 
-//  for (int i = 0; i < tamaBloque; i++)
-//    for (int j = 0; j < tamaBloque; j++)
-//      cout << "[P" << rank << "] --> M[" << i << "][" << j << "] = " << M[i][j] << endl;
-
   /**
     * Paso 8: Bucle principal del algoritmo
     */
-  int i, j, k, a, vikj, iGlobal, jGlobal, iIniLocal, iFinLocal, jIniLocal, jFinLocal, colorHorizontalLocal, colorVerticalLocal; 
+  int i, j, k, a, vikj, iGlobal, jGlobal, iIniLocal, iFinLocal, jIniLocal, jFinLocal, kEntreTama, kModuloTama; 
 
   iIniLocal = colorHorizontal * tamaBloque; // Fila inicial del proceso (valor global)
   iFinLocal = (colorHorizontal + 1) * tamaBloque; // Fila final del proceso (valor global)
@@ -114,19 +110,19 @@ int main (int argc, char *argv[])
   double t = MPI_Wtime();
 
   for (k = 0; k < nverts; k++) {
-    colorHorizontalLocal = k / tamaBloque;
-    colorVerticalLocal = k % tamaBloque;
+    kEntreTama = k / tamaBloque;
+    kModuloTama = k % tamaBloque;
     if (k >= iIniLocal && k < iFinLocal) { // La fila K pertenece al proceso
-      copy(M[colorVerticalLocal], M[colorVerticalLocal] + tamaBloque, FilK); // Copia la fila en el vector FilK
+      copy(M[kModuloTama], M[kModuloTama] + tamaBloque, FilK); // Copia la fila en el vector FilK
     }
     if (k >= jIniLocal && k < jFinLocal) { // La columna K pertenece al proceso
       for (a = 0; a < tamaBloque; a++) {
-        ColK[a] = M[a][colorVerticalLocal]; // Copia la columna en el vector ColK
+        ColK[a] = M[a][kModuloTama]; // Copia la columna en el vector ColK
       }
     }
     MPI_Barrier(MPI_COMM_WORLD);
-    MPI_Bcast(FilK, tamaBloque, MPI_INT, colorHorizontalLocal, commVertical);
-    MPI_Bcast(ColK, tamaBloque, MPI_INT, colorVerticalLocal, commHorizontal);
+    MPI_Bcast(FilK, tamaBloque, MPI_INT, kEntreTama, commVertical);
+    MPI_Bcast(ColK, tamaBloque, MPI_INT, kEntreTama, commHorizontal);
     for (i = 0; i < tamaBloque; i++) { // Recorrer las filas (valores locales)
       iGlobal = iIniLocal + i; // Convertir la fila a global
       for (j = 0; j < tamaBloque; j++) {  // Recorrer las columnas (valores locales)
@@ -134,7 +130,7 @@ int main (int argc, char *argv[])
         if (iGlobal != jGlobal && iGlobal != k && jGlobal != k) { // No iterar sobre celdas de valor 0
           vikj = ColK[i] + FilK[j];
           vikj = min(vikj, M[i][j]);
-          //M[i][j] = vikj;
+          M[i][j] = vikj;
         }
       }
     }

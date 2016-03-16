@@ -69,7 +69,7 @@ int main (int argc, char *argv[])
   /**
     * Paso 7: Bucle principal del algoritmo
     */
-  int i, j, k, vikj, iGlobal, iIniLocal, iFinLocal; 
+  int i, j, k, vikj, iGlobal, iIniLocal, iFinLocal, kEntreTama, kModuloTama;
 
   iIniLocal = rank * tamaBloque; // Fila inicial del proceso (valor global)
   iFinLocal = (rank + 1) * tamaBloque; // Fila final del proceso (valor global)
@@ -77,10 +77,12 @@ int main (int argc, char *argv[])
   double t = MPI_Wtime();
 
   for (k = 0; k < nverts; k++) {
+    kEntreTama = k / tamaBloque;
+    kModuloTama = k % tamaBloque;
     if (k >= iIniLocal && k < iFinLocal) { // La fila K pertenece al proceso
-      copy(M[k % tamaBloque], M[k % tamaBloque] + nverts, K);
+      copy(M[kModuloTama], M[kModuloTama] + nverts, K);
     }
-    MPI_Bcast(K, nverts, MPI_INT, k / tamaBloque, MPI_COMM_WORLD);
+    MPI_Bcast(K, nverts, MPI_INT, kEntreTama, MPI_COMM_WORLD);
     for (i = 0; i < tamaBloque; i++) { // Recorrer las filas (valores locales)
       iGlobal = iIniLocal + i; // Convertir la fila a global
       for (j = 0; j < nverts; j++) {
