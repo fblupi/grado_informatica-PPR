@@ -35,7 +35,7 @@ int main (int argc, char *argv[])
     * Paso 3: Crear grafo y obtener número de vértices
     */
   Graph G;
-  int nverts, tamaLocal, tamaBloque, raizP;
+  int nverts;
   if (rank == 0) { // Solo lo hace un proceso
     G.lee(argv[1]);
     #ifdef PRINT_ALL
@@ -48,12 +48,29 @@ int main (int argc, char *argv[])
   /**
     * Paso 4: Hacer broadcast del número de vértices a todos los procesos
     */
+  int raizP, tamaBloque;
   MPI_Bcast(&nverts, 1, MPI_INT, 0, MPI_COMM_WORLD);
+
   raizP = sqrt(size);
   tamaBloque = nverts / raizP;
 
   /**
-    * Paso 5: Empaquetar
+    * Paso 5: Crear comunicadores
+    */
+  int colorHorizontal, colorVertical, rankHorizontal, rankVertical;
+  MPI_Comm commHorizontal, commVertical;
+
+  colorHorizontal = rank / raizP;
+  colorVertical = rank % raizP;
+
+  MPI_Comm_split(MPI_COMM_WORLD, colorHorizontal, rank, &commHorizontal);
+  MPI_Comm_split(MPI_COMM_WORLD, colorVertical, rank, &commVertical);
+
+  //MPI_Comm_rank(commHorizontal, &rankHorizontal);
+  //MPI_Comm_rank(commVertical, &rankVertical);
+
+  /**
+    * Paso 6: Empaquetar
     */
   MPI_Datatype MPI_BLOQUE;
   int buffEnvio[nverts][nverts]; // Buffer de envío para almacenar los datos empaquetados
@@ -73,7 +90,7 @@ int main (int argc, char *argv[])
   }
 
   /**
-    * Paso 6: Distribuir la matriz entre los procesos
+    * Paso 7: Distribuir la matriz entre los procesos
     */
   int M[tamaBloque][tamaBloque]; // Matriz local
   MPI_Scatter(buffEnvio, sizeof(int) * tamaBloque * tamaBloque, MPI_PACKED, M, tamaBloque * tamaBloque, MPI_INT, 0, MPI_COMM_WORLD);
@@ -83,7 +100,7 @@ int main (int argc, char *argv[])
 //      cout << "[P" << rank << "] --> M[" << i << "][" << j << "] = " << M[i][j] << endl;
 
   /**
-    * Paso 7: Bucle principal del algoritmo
+    * Paso 8: Bucle principal del algoritmo
     */
 
   double t = MPI_Wtime();
@@ -94,12 +111,12 @@ int main (int argc, char *argv[])
   t = MPI_Wtime() - t;
 
   /**
-    * Paso 8: Recoger resultados en la matriz
+    * Paso 9: Recoger resultados en la matriz
     */
   MPI_Gather(M, tamaBloque * tamaBloque, MPI_INT, buffEnvio, sizeof(int) * tamaBloque * tamaBloque, MPI_PACKED, 0, MPI_COMM_WORLD);
 
   /**
-    * Paso 9: Desempaquetar
+    * Paso 10: Desempaquetar
     */
   if (rank == 0) {
     MPI_Type_vector(tamaBloque, tamaBloque, nverts, MPI_INT, &MPI_BLOQUE); // Se define el tipo de bloque cuadrado
@@ -115,7 +132,7 @@ int main (int argc, char *argv[])
   }
 
   /**
-    * Paso 10: Finalizar e imprimir resultados
+    * Paso 11: Finalizar e imprimir resultados
     */
   MPI_Finalize();
 

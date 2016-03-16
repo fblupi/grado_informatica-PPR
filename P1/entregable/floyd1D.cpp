@@ -34,7 +34,7 @@ int main (int argc, char *argv[])
     * Paso 3: Crear grafo y obtener número de vértices
     */
   Graph G;
-  int nverts, tamaLocal, tamaBloque;
+  int nverts;
   if (rank == 0) { // Solo lo hace un proceso
     G.lee(argv[1]);
     #ifdef PRINT_ALL
@@ -52,6 +52,7 @@ int main (int argc, char *argv[])
   /**
     * Paso 5: Reservar espacio para matriz y fila k
     */
+  int tamaLocal, tamaBloque;
   tamaLocal = nverts * nverts / size;
   tamaBloque = nverts / size;
   int M[tamaBloque][nverts], K[nverts]; // Matriz local y fila k
