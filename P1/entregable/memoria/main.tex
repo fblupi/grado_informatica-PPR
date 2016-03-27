@@ -1,0 +1,105 @@
+\input{estilo.tex}
+\usepackage{textcomp}
+\usepackage{listings}
+
+%----------------------------------------------------------------------------------------
+%	DATOS
+%----------------------------------------------------------------------------------------
+
+\newcommand{\myName}{Francisco Javier Bolívar Lupiáñez}
+\newcommand{\myDegree}{Grado en Ingeniería Informática}
+\newcommand{\myFaculty}{E. T. S. de Ingenierías Informática y de Telecomunicación}
+\newcommand{\myDepartment}{Lenguajes y Sistemas de Información}
+\newcommand{\myUniversity}{\protect{Universidad de Granada}}
+\newcommand{\myLocation}{Granada}
+\newcommand{\myTime}{\today}
+\newcommand{\myTitle}{Práctica 1}
+\newcommand{\mySubtitle}{Implementación distribuida de un algoritmo paralelo de datos usando MPI}
+\newcommand{\mySubject}{Programación Paralela}
+\newcommand{\myYear}{2015-2016}
+
+%----------------------------------------------------------------------------------------
+%	PORTADA
+%----------------------------------------------------------------------------------------
+
+
+\title{	
+	\normalfont \normalsize 
+	\textsc{{\bf \mySubject \space (\myYear)} \\ \myDepartment} \\[20pt] % Your university, school and/or department name(s)
+	\textsc{\myDegree \\[10pt] \myFaculty \\ \myUniversity} \\[25pt]
+	\horrule{0.5pt} \\[0.4cm] % Thin top horizontal rule
+	\huge \myTitle: \mySubtitle \\ % The assignment title
+	\horrule{2pt} \\[0.5cm] % Thick bottom horizontal rule
+	\normalfont \normalsize
+}
+
+\author{\myName} % Nombre y apellidos
+
+\date{\myTime} % Incluye la fecha actual
+%----------------------------------------------------------------------------------------
+%	INDICE
+%----------------------------------------------------------------------------------------
+
+\begin{document}
+
+\lstdefinestyle{C} {
+	basicstyle=\scriptsize,
+	frame=single,
+	language=C,
+	numbers=left
+}
+	
+\setcounter{page}{0}
+
+\maketitle % Muestra el Título
+\thispagestyle{empty}
+
+\newpage %inserta un salto de página
+
+\tableofcontents % para generar el índice de contenidos
+
+\listoffigures
+
+\newpage
+
+%----------------------------------------------------------------------------------------
+%	DOCUMENTO
+%----------------------------------------------------------------------------------------
+
+\section{Planteamiento}
+
+En esta práctica se llevará a cabo la paralelización del algoritmo Floyd para la búsqueda del camino más corto en un grafo.
+
+Se desarrollarán dos versiones:
+\begin{itemize}
+	\item \textbf{Unidimensional}: Se repartirán las filas de la matriz a los procesos.
+	\item \textbf{Bidimensional}: Se repartirán submatrices de la matriz a los procesos.
+\end{itemize}
+
+\subsection{Algoritmo de Floyd}
+
+El algoritmo de Floyd deriva una matriz en N pasos (tantos como número de nodos), obteniendo en cada paso una matriz intermedia con el camino más corto entre cada par de nodos.
+
+\subsubsection{Pseudocódigo}
+
+\begin{lstlisting}[style=c]
+I_ij = A;
+for k = 0 to N-1
+	for i = 0 to N-1
+		for j = 0 to N-1
+			I_ij = min(I_ij, I_ik + I_kj);
+\end{lstlisting}
+
+\section{Solución}
+
+\subsection{Versión unidimensional}
+
+Para solucionarlo con este enfoque, asumiendo que el tamaño del problema es divisible entre el número de procesos, cada proceso tendrá una matriz local de tamaño $N/P \times N$.
+\\ \\
+El reparto se realizará por bloques. Es decir. Al primer proceso le corresponderán las primeras N/P filas, al segundo las siguientes... Por ejemplo, si el tamaño del problema es 8 y tenemos 4 procesos, al $P_{0}$ le corresponderás las filas 0 y 1, al $P_{1}$ las 2 y 3, al $P_{2}$ las 4 y 5 y al $P_{3}$ las 6 y 7.
+\\ \\
+En el cálculo de cada submatriz resultado, cada proceso necesitará, en el paso k, la fila k y puede tener suerte y ser suya o no y corresponderle a otro proceso. Entonces debería comunicarse con éste para poder realizar el cálculo. Por tanto, en cada iteración del primer bucle k, el proceso detectará si la fila k le pertenece y si es así, hace un \textit{broadcast} al resto de procesos.
+\\ \\
+Por tanto, para solucionar el problema, nos basta con un \textit{scatter} para repartir la matriz, un \textit{broadcast} para difundir cada fila k y un \textit{gather} para recolectar la matriz resultado y el único problema que nos podríamos encontrar es el traducir de local a global un índice según lo que se necesite.
+
+\end{document}
