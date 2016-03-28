@@ -127,7 +127,6 @@ int main (int argc, char *argv[])
         ColK[a] = M[a][kModuloTama]; 
       }
     }
-    MPI_Barrier(MPI_COMM_WORLD);
     MPI_Bcast(FilK, tamaBloque, MPI_INT, kEntreTama, commVertical);
     MPI_Bcast(ColK, tamaBloque, MPI_INT, kEntreTama, commHorizontal);
     for (i = 0; i < tamaBloque; i++) { // Recorrer las filas (valores locales)

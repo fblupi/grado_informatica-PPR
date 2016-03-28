@@ -159,4 +159,33 @@ for k = 0 to N-1
 
 \lstinputlisting[style=c]{src/floyd2D.cpp}
 
+\section{Resultados}
+
+\begin{tabular}{ | c | c c c | c c | }
+	\hline
+	N		&	$ T_{sec} $	&	$ T_{1D} $	&	$ T_{2D} $	 &	$ S_{1D} $	 &	$ S_{2D} $	\\
+	\hline
+	64      &	0,000396482 &	0,000868711 &	0,0008886901 &	0,4564023343 &	0,4461414615	\\
+	128     &	0,003013494 &	0,004452289 &	0,004570981  &	0,6768415078 &	0,6592663588	\\
+	256     &	0,0234622   &	0,02117407  &	0,023623352  &	1,1080628335 &	0,9931782755	\\
+	512     &	0,2003635   &	0,10693829  &	0,11696271   &	1,8736366553 &	1,7130545282	\\
+	1024    &	1,403187    &	0,4415758   &	0,4668597    &	3,1776809327 &	3,0055860465	\\
+	\hline
+\end{tabular}
+\captionof{table}{Tiempos y ganancia para P = 4 y N = 64, 128, 256, 512 y 1024}
+
+\begin{figure}[H]
+	\centering
+	\includegraphics[width=9cm]{img/tiempo}
+	\caption{Gráfica de tiempo para P = 4 y N = 64, 128, 256, 512 y 1024}
+	\label{fig:grafica_tiempo}
+\end{figure}
+
+\begin{figure}[H]
+	\centering
+	\includegraphics[width=9cm]{img/ganancia}
+	\caption{Gráfica de ganancia para P = 4 y N = 64, 128, 256, 512 y 1024}
+	\label{fig:grafica_ganancia}
+\end{figure}
+
 \end{document}
