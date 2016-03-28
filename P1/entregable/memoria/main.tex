@@ -94,6 +94,8 @@ for k = 0 to N-1
 
 \subsection{Versión unidimensional}
 
+\subsubsection{Descripción}
+
 Para solucionarlo con este enfoque, asumiendo que el tamaño del problema es divisible entre el número de procesos, \textbf{cada proceso tendrá una matriz local de tamaño $N/P \times N$}.
 \\ \\
 \textbf{El reparto se realizará por bloques}. Es decir. Al primer proceso le corresponderán las primeras N/P filas, al segundo las siguientes... Por ejemplo, si el tamaño del problema es 8 y tenemos 4 procesos, al $P_{0}$ le corresponderás las filas 0 y 1, al $P_{1}$ las 2 y 3, al $P_{2}$ las 4 y 5 y al $P_{3}$ las 6 y 7.
@@ -121,6 +123,40 @@ No obstante, si se trabaja con índices locales, es decir, el búcle va desde 0 
 \\ \\
 El otro problema con el que me encontré fue durante el \textit{broadcast} de la fila k. Y es que al escribir la sentencia \texttt{MPI\_BCast} no cambié el índice del proceso raíz y siempre mandaba la fila k el proceso 0. Esto es fácil de corregir, una vez detectado el fallo, pues el índice del proceso raíz siempre será k / tamaño de bloque (siendo el tamaño de bloque N/P).
 
+\subsubsection{Código}
+
 \lstinputlisting[style=c]{src/floyd1D.cpp}
+
+\subsection{Versión bidimensional}
+
+\subsubsection{Descripción}
+
+Para solucionarlo con este enfoque, asumiendo que el tamaño del problema es divisible entre la raíz cuadrada del número de procesos, \textbf{cada proceso tendrá una matriz local de tamaño $N/\sqrt{P} \times N/\sqrt{P}$}.
+\\ \\
+El reparto, a diferencia del enfoque anterior, no es inmediato. En la versión unidimensional realizábamos un \textit{scatter} directamente porque se repartían celdas consecutivas en memoria. En este caso, al distribuir submatrices cuadradas, \textbf{deberemos definir un tipo de dato MPI}.
+\\ \\
+Se realizarán $\sqrt{P}$ particiones en cada dimensión, obteniendo P submatrices de tamaño $N/\sqrt{P} \times N/\sqrt{P}$ cada una. Se repartirán a los procesos de izquierda a derecha y arriba abajo. Si, por ejemplo, tuviésemos 9 procesos, la de arriba a la izquierda le correspondería al $P_{0}$, la de arriba al centro al $P_{1}$, la de arriba a la derecha al $P_{2}$, la del centro a la izquierda al $P_{3}$, la del centro al $P_{4}$, la del centro a la derecha al $P_{5}$, la de abajo a la izquierda al $P_{6}$, la de abajo al centro al $P_{7}$ y la de abajo a la derecha al $P_{8}$.
+\\ \\
+Si para el reparto y recolección del resultado se complica la cosa, para el cálculo de éste también. Y es que antes, con la repartición unidimensional, tan solo se necesitaba la fila k, pero \textbf{ahora se necesitan valores en las dos dimensiones para calcular el resultado}: hace falta una subfila k y una subcolumna k de los procesos que están colocados en la misma columna y fila respectivamente.
+\\ \\
+Para llevar a cabo estas comunicaciones hará falta definir \textbf{dos comunicadores} y asignarlos a cada proceso para que, en el comunicador horizontal se comuniquen aquellos que se encuentran en la misma fila y en el vertical los que están en la misma columna.
+
+\subsubsection{Pseudocódigo}
+
+\begin{lstlisting}[style=c]
+M[i][j] = A
+for k = 0 to N-1
+	broadcast(filK)
+	broadcast(colK)
+	for i = 0 to N/sqrt(P)-1
+		for j = 0 to N/sqrt(P)-1
+			M[i][j] = min(M[i][j], ColK[i] + FilK[j])
+\end{lstlisting}
+
+\subsubsection{Problemas y soluciones}
+
+\subsubsection{Código}
+
+\lstinputlisting[style=c]{src/floyd2D.cpp}
 
 \end{document}
