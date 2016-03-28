@@ -68,8 +68,8 @@
 
 \section{Planteamiento}
 
-En esta práctica se llevará a cabo la paralelización del algoritmo Floyd para la búsqueda del camino más corto en un grafo.
-
+En esta práctica se llevará a cabo la paralelización del \textbf{algoritmo Floyd} para la búsqueda del camino más corto en un grafo.
+\\ \\
 Se desarrollarán dos versiones:
 \begin{itemize}
 	\item \textbf{Unidimensional}: Se repartirán las filas de la matriz a los procesos.
@@ -83,23 +83,44 @@ El algoritmo de Floyd deriva una matriz en N pasos (tantos como número de nodos
 \subsubsection{Pseudocódigo}
 
 \begin{lstlisting}[style=c]
-I_ij = A;
+M[i][j] = A
 for k = 0 to N-1
 	for i = 0 to N-1
 		for j = 0 to N-1
-			I_ij = min(I_ij, I_ik + I_kj);
+			M[i][j] = min(M[i][j], M[i][k] + M[k][j])
 \end{lstlisting}
 
 \section{Solución}
 
 \subsection{Versión unidimensional}
 
-Para solucionarlo con este enfoque, asumiendo que el tamaño del problema es divisible entre el número de procesos, cada proceso tendrá una matriz local de tamaño $N/P \times N$.
+Para solucionarlo con este enfoque, asumiendo que el tamaño del problema es divisible entre el número de procesos, \textbf{cada proceso tendrá una matriz local de tamaño $N/P \times N$}.
 \\ \\
-El reparto se realizará por bloques. Es decir. Al primer proceso le corresponderán las primeras N/P filas, al segundo las siguientes... Por ejemplo, si el tamaño del problema es 8 y tenemos 4 procesos, al $P_{0}$ le corresponderás las filas 0 y 1, al $P_{1}$ las 2 y 3, al $P_{2}$ las 4 y 5 y al $P_{3}$ las 6 y 7.
+\textbf{El reparto se realizará por bloques}. Es decir. Al primer proceso le corresponderán las primeras N/P filas, al segundo las siguientes... Por ejemplo, si el tamaño del problema es 8 y tenemos 4 procesos, al $P_{0}$ le corresponderás las filas 0 y 1, al $P_{1}$ las 2 y 3, al $P_{2}$ las 4 y 5 y al $P_{3}$ las 6 y 7.
 \\ \\
-En el cálculo de cada submatriz resultado, cada proceso necesitará, en el paso k, la fila k y puede tener suerte y ser suya o no y corresponderle a otro proceso. Entonces debería comunicarse con éste para poder realizar el cálculo. Por tanto, en cada iteración del primer bucle k, el proceso detectará si la fila k le pertenece y si es así, hace un \textit{broadcast} al resto de procesos.
+En el cálculo de cada submatriz resultado, cada proceso necesitará, en el paso k, la fila k y puede tener suerte y ser suya o no y corresponderle a otro proceso. Entonces debería comunicarse con éste para poder realizar el cálculo. Por tanto, en cada iteración del primer bucle k, \textbf{el proceso detectará si la fila k le pertenece y si es así, hace un \textit{broadcast} al resto de procesos}.
 \\ \\
-Por tanto, para solucionar el problema, nos basta con un \textit{scatter} para repartir la matriz, un \textit{broadcast} para difundir cada fila k y un \textit{gather} para recolectar la matriz resultado y el único problema que nos podríamos encontrar es el traducir de local a global un índice según lo que se necesite.
+Por tanto, para solucionar el problema, nos basta con un \textbf{\textit{scatter} para repartir la matriz}, un \textbf{\textit{broadcast} para difundir cada fila k} y un \textbf{\textit{gather} para recolectar la matriz resultado} y el único problema que nos podríamos encontrar es el traducir de local a global un índice según lo que se necesite.
+
+\subsubsection{Pseudocódigo}
+
+\begin{lstlisting}[style=c]
+M[i][j] = A
+for k = 0 to N-1
+	broadcast(K)
+	for i = 0 to N/P-1
+		for j = 0 to N-1
+			M[i][j] = min(M[i][j], M[i][k] + K[j])
+\end{lstlisting}
+
+\subsubsection{Problemas y soluciones}
+
+El principal problema que se puede encontrar en esta versión es, como he comentado anteriormente, el \textbf{traducir un índice de local en un proceso a global}.
+\\ \\
+No obstante, si se trabaja con índices locales, es decir, el búcle va desde 0 a N/P, solo se necesita el índice global para comprobar que no se está iterando sobre la diagonal de la matriz (i=j, i=k o j=k).
+\\ \\
+El otro problema con el que me encontré fue durante el \textit{broadcast} de la fila k. Y es que al escribir la sentencia \texttt{MPI\_BCast} no cambié el índice del proceso raíz y siempre mandaba la fila k el proceso 0. Esto es fácil de corregir, una vez detectado el fallo, pues el índice del proceso raíz siempre será k / tamaño de bloque (siendo el tamaño de bloque N/P).
+
+\lstinputlisting[style=c]{src/floyd1D.cpp}
 
 \end{document}
