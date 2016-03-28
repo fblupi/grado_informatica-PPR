@@ -56,8 +56,6 @@
 
 \newpage %inserta un salto de página
 
-\tableofcontents % para generar el índice de contenidos
-
 \listoffigures
 
 \newpage
@@ -85,9 +83,9 @@ El algoritmo de Floyd deriva una matriz en N pasos (tantos como número de nodos
 \begin{lstlisting}[style=c]
 M[i][j] = A
 for k = 0 to N-1
-	for i = 0 to N-1
-		for j = 0 to N-1
-			M[i][j] = min(M[i][j], M[i][k] + M[k][j])
+  for i = 0 to N-1
+    for j = 0 to N-1
+      M[i][j] = min(M[i][j], M[i][k] + M[k][j])
 \end{lstlisting}
 
 \section{Solución}
@@ -109,10 +107,10 @@ Por tanto, para solucionar el problema, nos basta con un \textbf{\textit{scatter
 \begin{lstlisting}[style=c]
 M[i][j] = A
 for k = 0 to N-1
-	broadcast(K)
-	for i = 0 to N/P-1
-		for j = 0 to N-1
-			M[i][j] = min(M[i][j], M[i][k] + K[j])
+  broadcast(K)
+  for i = 0 to N/P-1
+    for j = 0 to N-1
+      M[i][j] = min(M[i][j], M[i][k] + K[j])
 \end{lstlisting}
 
 \subsubsection{Problemas y soluciones}
@@ -146,14 +144,29 @@ Para llevar a cabo estas comunicaciones hará falta definir \textbf{dos comunica
 \begin{lstlisting}[style=c]
 M[i][j] = A
 for k = 0 to N-1
-	broadcast(filK)
-	broadcast(colK)
-	for i = 0 to N/sqrt(P)-1
-		for j = 0 to N/sqrt(P)-1
-			M[i][j] = min(M[i][j], ColK[i] + FilK[j])
+  broadcast(filK)
+  broadcast(colK)
+  for i = 0 to N/sqrt(P)-1
+    for j = 0 to N/sqrt(P)-1
+      M[i][j] = min(M[i][j], ColK[i] + FilK[j])
 \end{lstlisting}
 
 \subsubsection{Problemas y soluciones}
+
+La complicación de la implementación de esta versión, como ya se comentaron, son el trabajar un \textbf{tipo de dato MPI personalizado} y con \textbf{comunicadores para filas y columnas}.
+\\ \\
+Para trabajar con un tipo de dato personalizado, hay que definirlo y empaquetarlo para poder hacer tanto el \textit{scatter} como el \textit{gather}.
+\\ \\
+\textbf{Se define con \texttt{MPI\_Tipe\_vector}} y se le pasa el número de grupos de bloque (en nuestro caso, las filas de la submatriz), el número de elementos de cada bloque (columnas de la submatriz), la separación entre un bloque y otro (tamaño del problema), el tipo de dato (entero) y el nombre del tipo de dato MPI que se usará. Una vez definido, se realiza un \texttt{MPI\_Type\_commit}.
+\\ \\
+A continuación hay que \textbf{empaquetarlos en un búfer de envío}, para eso se realizarán tantas iteraciones en un bucle como número de procesos haya. En cada una de estas iteraciones se tiene que empaquetar con \texttt{MPI\_Pack} a la que se le pasarán como parámentros el puntero al inicio del búfer de entrada (para ello se debe calcular el desplazamiento desde el inicio de la matriz para cada proceso), el número de datos de entrada (en nuestro caso 1), el tipo de dato (que será el que definimos anteriormente), el puntero al búfer de salida, el tamaño de éste, la posición (que inicializamos a 0 y el propio \texttt{MPI\_Pack} se encarga de modificar) y el comunicador. De entre todas estas variables, la única que habría que calcular es el desplazamiento desde el inicio de la matriz para apuntar al inicio de cada submatriz y sería:
+\[ desplazamiento = col_P \times tama_{bloque} + fil_P \times tama_{bloque}^{2} \times \sqrt{P} \]
+donde:
+\[ col_P = i / \sqrt{P} \]
+\[ fil_P = i \% \sqrt{P} \]
+\[ tama_{bloque} = N / \sqrt{P} \]
+\\ \\
+Una vez empaquetado se puede realizar el \textit{scatter} con los siguientes parámetros: El búfer de entrada sería el búfer de envío que usamos como búfer de salida en el \texttt{MPI\_Pack}, el tamaño el necesario para almacenar los enteros de la submatriz, el tipo de dato \texttt{MPI\_PACKED}, el búfer de recepción el puntero a la submatriz local, el tamaño el de la submatriz, el tipo de dato entero, el proceso raíz el 0 (que ha sido el que ha realizado todas las operaciones anteriores de definición y empaquetado del tipo de dato) y el comunicador el global.
 
 \subsubsection{Código}
 
