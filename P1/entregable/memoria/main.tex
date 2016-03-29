@@ -117,10 +117,18 @@ for k = 0 to N-1
 
 \subsubsection{Problemas y soluciones}
 
+\paragraph{Traducir índices locales a globales}
+
 El principal problema que se puede encontrar en esta versión es, como he comentado anteriormente, el \textbf{traducir un índice de local en un proceso a global}.
 \\ \\
-No obstante, si se trabaja con índices locales, es decir, el búcle va desde 0 a N/P, solo se necesita el índice global para comprobar que no se está iterando sobre la diagonal de la matriz (i=j, i=k o j=k).
-\\ \\
+No obstante, si se trabaja con índices locales, es decir, el búcle va desde 0 a N/P, solo se necesita el índice global para comprobar que no se está iterando sobre la diagonal de la matriz (i=j, i=k o j=k). Éste sería fácil de calcular, tan solo haría falta saber cúal es el \textbf{inicio en global de ese proceso}, calculado como:
+\[ inicio_i = id \times tama_{bloque}  \]
+donde:
+\[ itama_{bloque} = N / P  \]
+Para obtener el índice global, al índice de inicio para este proceso \textbf{se le sumaría el desplazamiento}, dado por el valor que tenga i en esa iteración.
+
+\paragraph{Hacer \textit{broadcast} de la fila k}
+
 El otro problema con el que me encontré fue durante el \textit{broadcast} de la fila k. Y es que al escribir la sentencia \texttt{MPI\_BCast} no cambié el índice del proceso raíz y siempre mandaba la fila k el proceso 0. Esto es fácil de corregir, una vez detectado el fallo, pues el índice del proceso raíz siempre será k / tamaño de bloque (siendo el tamaño de bloque N/P).
 
 \subsubsection{Código}
@@ -155,11 +163,17 @@ for k = 0 to N-1
 
 \subsubsection{Problemas y soluciones}
 
-La complicación de la implementación de esta versión, como ya se comentaron, son el trabajar un \textbf{tipo de dato MPI personalizado} y con \textbf{comunicadores para filas y columnas}.
+\paragraph{Traducir índices locales a globales}
+
+Pasar de índice local a global no debería de resultar muy problemático, pues \textbf{se realizaría de la misma forma que en la versión unidimensional}, solo que aquí también haría falta pasar el índice j de local a global usando el mismo método que en la otra versión, sumando al inicio el desplazamiento. En esta versión los inicios se calcularía de la siguiente forma:
+\[ inicio_i = id / \sqrt{P} \times tama_{bloque}  \]
+\[ inicio_j = id \% \sqrt{P} \times tama_{bloque}  \]
+donde:
+\[ tama_{bloque} = N / \sqrt{P} \]
 
 \paragraph{Tipo de dato MPI personalizado}
 
-Para trabajar con un tipo de dato personalizado, hay que definirlo y empaquetarlo para poder hacer tanto el \textit{scatter} como el \textit{gather}.
+Para trabajar con un tipo de dato personalizado, hay que \textbf{definirlo y empaquetarlo} para poder hacer tanto el \textit{scatter} como el \textit{gather}.
 \\ \\
 \textbf{Se define con \texttt{MPI\_Tipe\_vector}} y se le pasa como parámetros:
 \begin{itemize}
@@ -227,7 +241,7 @@ Una vez realizada esta operación, hay que desempaquetar (paso inverso al empaqu
 
 \paragraph{Comunicadores para filas y columnas}
 
-Para definir los comunicadores, lo primero que tenemos que hacer es identificar en qué fila y columna está cada proceso para asignarle ese color en el comunicador. Para ello se calculará de la siguiente forma:
+Para definir los comunicadores, lo primero que tenemos que hacer es \textbf{identificar en qué fila y columna está cada proceso} para asignarle ese color en el comunicador. Para ello se calculará de la siguiente forma:
 \[ color_{fila} = id / sqrt{P} \]
 \[ color_{columna} = id \% sqrt{P} \]
 
@@ -247,7 +261,7 @@ Y para el comunicador vertical, por columnas, los siguientes:
 	\item \textbf{Nuevo comunicador}: Variable \texttt{MPI\_Comm} que hemos creado para el comunicador vertical.
 \end{itemize}
 
-Una vez definidos los comunicadores podemos hacer uso de ellos para enviar la subfila y subcolumna k. Para ello, al igual que como se hacía en la versión unidimensional, se comprueba si la subfila y la subcolumna k pertenecen a un proceso para que este copie ambas en dos vectores locales de los que luego hará \textit{broadcast al resto de procesos}. A continuación se realizarían dos \texttt{MPI\_Bcast}. Uno para comunicar la subfila con los siguientes parámetros:
+Una vez definidos los comunicadores podemos hacer uso de ellos para enviar la subfila y subcolumna k. Para ello, al igual que como se hacía en la versión unidimensional, \textbf{se comprueba si la subfila y la subcolumna k pertenecen a un proceso} para que este copie ambas en dos vectores locales de los que luego hará \textit{broadcast al resto de procesos}. A continuación \textbf{se realizarían dos \texttt{MPI\_Bcast}}. Uno para comunicar la subfila con los siguientes parámetros:
 \begin{itemize}
 	\item \textbf{Direccioń inicial del búfer} (tanto de entrada como de salida): Vector donde se ha copiado la subfila k.
 	\item \textbf{Número de elementos en el búfer}: Tamaño de la subfila.
