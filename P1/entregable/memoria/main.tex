@@ -124,7 +124,7 @@ El principal problema que se puede encontrar en esta versión es, como he coment
 No obstante, si se trabaja con índices locales, es decir, el búcle va desde 0 a N/P, solo se necesita el índice global para comprobar que no se está iterando sobre la diagonal de la matriz (i=j, i=k o j=k). Éste sería fácil de calcular, tan solo haría falta saber cúal es el \textbf{inicio en global de ese proceso}, calculado como:
 \[ inicio_i = id \times tama_{bloque}  \]
 donde:
-\[ itama_{bloque} = N / P  \]
+\[ tama_{bloque} = N / P  \]
 Para obtener el índice global, al índice de inicio para este proceso \textbf{se le sumaría el desplazamiento}, dado por el valor que tenga i en esa iteración.
 
 \paragraph{Hacer \textit{broadcast} de la fila k}
