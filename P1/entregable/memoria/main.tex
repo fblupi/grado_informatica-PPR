@@ -1,6 +1,4 @@
 \input{estilo.tex}
-\usepackage{textcomp}
-\usepackage{listings}
 
 %----------------------------------------------------------------------------------------
 %	DATOS
@@ -48,15 +46,19 @@
 	language=C,
 	numbers=left
 }
+
+\titleformat{\paragraph}{\normalfont\normalsize\bfseries}{\theparagraph}{1em}{}
+\titlespacing*{\paragraph}{0pt}{3.25ex plus 1ex minus .2ex}{1.5ex plus .2ex}
 	
 \setcounter{page}{0}
+\setcounter{secnumdepth}{4}
 
 \maketitle % Muestra el Título
 \thispagestyle{empty}
 
 \newpage %inserta un salto de página
 
-\listoffigures
+\tableofcontents
 
 \newpage
 
@@ -154,41 +156,76 @@ for k = 0 to N-1
 \subsubsection{Problemas y soluciones}
 
 La complicación de la implementación de esta versión, como ya se comentaron, son el trabajar un \textbf{tipo de dato MPI personalizado} y con \textbf{comunicadores para filas y columnas}.
-\\ \\
+
+\paragraph{Tipo de dato MPI personalizado}
+
 Para trabajar con un tipo de dato personalizado, hay que definirlo y empaquetarlo para poder hacer tanto el \textit{scatter} como el \textit{gather}.
 \\ \\
-\textbf{Se define con \texttt{MPI\_Tipe\_vector}} y se le pasa el número de grupos de bloque (en nuestro caso, las filas de la submatriz), el número de elementos de cada bloque (columnas de la submatriz), la separación entre un bloque y otro (tamaño del problema), el tipo de dato (entero) y el nombre del tipo de dato MPI que se usará. Una vez definido, se realiza un \texttt{MPI\_Type\_commit}.
+\textbf{Se define con \texttt{MPI\_Tipe\_vector}} y se le pasa como parámetros:
+\begin{itemize}
+	\item \textbf{Número de grupo de bloques}: Coincide con las filas de cada submatriz.
+	\item \textbf{Número de elementos en cada bloque}: Coincide con las columnas de cada submatriz.
+	\item \textbf{Número de elementos entre comienzo de cada bloque}: Coincide con el tamaño del problema.
+	\item \textbf{Tipo de dato de los elementos}: \texttt{MPI\_INT}.
+	\item \textbf{Nuevo tipo de dato}: Variable \texttt{MPI\_Datatype} del nuevo tipo de dato.
+\end{itemize}
+
+Una vez definido, se realiza un \texttt{MPI\_Type\_commit}.
 \\ \\
-A continuación hay que \textbf{empaquetarlos en un búfer de envío}, para eso se realizarán tantas iteraciones en un bucle como número de procesos haya. En cada una de estas iteraciones se tiene que empaquetar con \texttt{MPI\_Pack} a la que se le pasarán como parámentros el puntero al inicio del búfer de entrada (para ello se debe calcular el desplazamiento desde el inicio de la matriz para cada proceso), el número de datos de entrada (en nuestro caso 1), el tipo de dato (que será el que definimos anteriormente), el puntero al búfer de salida, el tamaño de éste, la posición (que inicializamos a 0 y el propio \texttt{MPI\_Pack} se encarga de modificar) y el comunicador. De entre todas estas variables, la única que habría que calcular es el desplazamiento desde el inicio de la matriz para apuntar al inicio de cada submatriz y sería:
+A continuación hay que \textbf{empaquetarlos en un búfer de envío}, para eso se realizarán tantas iteraciones en un bucle como número de procesos haya. En cada una de estas iteraciones se tiene que empaquetar con \texttt{MPI\_Pack} a la que se le pasarán como parámentros:
+\begin{itemize}
+	\item \textbf{Búfer de entrada}: Puntero a la posición de la matriz donde comienza la submatriz de cada proceso, para ello hará falta calcular el desplazamiento desde el inicio de la submatriz que se detallará más adelante.
+	\item \textbf{Número de datos de entrada}: 1.
+	\item \textbf{Tipo de dato de los datos de entrada}: El tipo de dato MPI que definimos anteriormente.
+	\item \textbf{Inicio del búfer de salida}: Puntero al búfer de salida.
+	\item \textbf{Tamaño del búfer de de salida} (en bytes): Tamaño de un entero multiplicado por el tamaño de la matriz solución.
+	\item \textbf{Posición actual del búfer} (en bytes): Variable inicializada a cero en la primera iteración del bucle que el propio \texttt{MPI\_Pack} se encargará de modificar.
+	\item \textbf{Comunicador}: \texttt{MPI\_COMM\_WORLD}.
+\end{itemize}
+
+De entre todas estas variables, la única que habría que calcular es el desplazamiento desde el inicio de la matriz para apuntar al inicio de cada submatriz y sería:
 \[ desplazamiento = col_P \times tama_{bloque} + fil_P \times tama_{bloque}^{2} \times \sqrt{P} \]
 donde:
 \[ col_P = i / \sqrt{P} \]
 \[ fil_P = i \% \sqrt{P} \]
 \[ tama_{bloque} = N / \sqrt{P} \]
-\\ \\
-Una vez empaquetado se puede realizar el \textit{scatter} con los siguientes parámetros: El búfer de entrada sería el búfer de envío que usamos como búfer de salida en el \texttt{MPI\_Pack}, el tamaño el necesario para almacenar los enteros de la submatriz, el tipo de dato \texttt{MPI\_PACKED}, el búfer de recepción el puntero a la submatriz local, el tamaño el de la submatriz, el tipo de dato entero, el proceso raíz el 0 (que ha sido el que ha realizado todas las operaciones anteriores de definición y empaquetado del tipo de dato) y el comunicador el global.
-\\ \\
+
+Una vez empaquetado se realiza un \texttt{MPI\_Type\_free} para liberar el tipo de dato y se podría realizar el \texttt{MPI\_Scatter} con los siguientes parámetros:
+\begin{itemize}
+	\item \textbf{Dirección inicial del búfer de envío}: Búfer de envío que usamos como búfer de salida en el  \texttt{MPI\_Pack}.
+	\item \textbf{Tamaño de los elementos que se van a repartir a cada proceso} (en bytes): Tamaño del entero multiplicado por el tamaño de la submatriz local de cada proceso.
+	\item \textbf{Tipo de dato del búfer de envío}: \texttt{MPI\_PACKED}.
+	\item \textbf{Dirección inicial del búfer de recepción}: Inicio de la submatriz local de cada proceso.
+	\item \textbf{Tamaño del búfer de recepción}: Tamaño de la submatriz.
+	\item \textbf{Tipo de dato del búfer de recepción}: \texttt{MPI\_INT}.
+	\item \textbf{Proceso raíz}: 0.
+	\item \textbf{Comunicador}: \texttt{MPI\_COOMM\_WORLD}.
+\end{itemize}
+
 Antes de desempaquetar, se puede realizar sin problemas el \texttt{MPI\_Gather} con los siguientes parámetros:
 \begin{itemize}
 	\item \textbf{Dirección inicial del búfer de envío}: Inicio de la submatriz local de cada proceso.
 	\item \textbf{Tamaño del búfer de envío}: Tamaño de la submatriz.
 	\item \textbf{Tipo de dato del búfer de envío}: \texttt{MPI\_INT}.
-	\item \textbf{Dirección inicial del búfer de rececpción}: Búfer utilizado como búfer de envío en el \textit{scatter}.
+	\item \textbf{Dirección inicial del búfer de recepción}: Búfer utilizado como búfer de envío en el \textit{scatter}.
 	\item \textbf{Tamaño de los elementos que se van a recibir de cada proceso} (en bytes): Tamaño del entero multiplicado por el tamaño de la submatriz.
 	\item \textbf{Tipo de dato del búfer de recepción}: \texttt{MPI\_PACKED}.
 	\item \textbf{Proceso raíz}: 0.
 	\item \textbf{Comunicador}: \texttt{MPI\_COMM\_WORLD}.
 \end{itemize}
 
-Una vez realizada esta operación, hay que desempaquetar (paso inverso al empaquetado anterior). Para ello se utilizará un bucle como el desempaquetado, pero esta vez se utilizará \texttt{MPI\_Unpack} con los siguientes parámetros:
+Una vez realizada esta operación, hay que desempaquetar (paso inverso al empaquetado anterior). Para ello se definirá de nuevo el tipo (\texttt{MPI\_Type\_vector} y \texttt{MPI\_Type\_commit} con los mismos parámetros que en el empaquetado) y se utilizará un bucle como en el empaquetado, pero esta vez se utilizará \texttt{MPI\_Unpack} con los siguientes parámetros:
 \begin{itemize}
 	\item \textbf{Búfer de entrada}: Búfer donde hemos recogido las submatrices de todos los procesos en el \textit{gather}.
 	\item \textbf{Tamaño del búfer de entrada} (en bytes): Tamaño de un entero multiplicado por el tamaño de la matriz solución.
 	\item \textbf{Posición actual del búfer} (en bytes): Variable inicializada a cero en la primera iteración del bucle que el propio \texttt{MPI\_Unpack} se encargará de modificar.
 	\item \textbf{Inicio del búfer de salida}: Puntero a la matriz donde se almacenará el resultado con el desplazamiento correspondiente para cada proceso (calculado como en el empaquetado).
 	\item \textbf{Número de elementos de datos de salida}: 1.
+	\item \textbf{Tipo de dato de los datos de salida}: El tipo de dato MPI que definimos anteriormente.
 	\item \textbf{Comunicador}: \texttt{MPI\_COMM\_WORLD}.
 \end{itemize}
+
+\paragraph{Comunicadores para filas y columnas}
 
 \subsubsection{Código}
 
