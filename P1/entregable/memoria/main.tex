@@ -247,6 +247,24 @@ Y para el comunicador vertical, por columnas, los siguientes:
 	\item \textbf{Nuevo comunicador}: Variable \texttt{MPI\_Comm} que hemos creado para el comunicador vertical.
 \end{itemize}
 
+Una vez definidos los comunicadores podemos hacer uso de ellos para enviar la subfila y subcolumna k. Para ello, al igual que como se hacía en la versión unidimensional, se comprueba si la subfila y la subcolumna k pertenecen a un proceso para que este copie ambas en dos vectores locales de los que luego hará \textit{broadcast al resto de procesos}. A continuación se realizarían dos \texttt{MPI\_Bcast}. Uno para comunicar la subfila con los siguientes parámetros:
+\begin{itemize}
+	\item \textbf{Direccioń inicial del búfer} (tanto de entrada como de salida): Vector donde se ha copiado la subfila k.
+	\item \textbf{Número de elementos en el búfer}: Tamaño de la subfila.
+	\item \textbf{Tipo de dato de los elementos del búfer}: \texttt{MPI\_INT}.
+	\item \textbf{Proceso raíz}: k dividido entre el tamaño de la subfila.
+	\item \textbf{Comunicador}: Comunicador vertical (por columnas).
+\end{itemize}
+
+Y otro para comunicar la subcolumna con estos parámetros:
+\begin{itemize}
+	\item \textbf{Direccioń inicial del búfer} (tanto de entrada como de salida): Vector donde se ha copiado la subcolumna k.
+	\item \textbf{Número de elementos en el búfer}: Tamaño de la subcolumna.
+	\item \textbf{Tipo de dato de los elementos del búfer}: \texttt{MPI\_INT}.
+	\item \textbf{Proceso raíz}: k dividido entre el tamaño de la subcolumna.
+	\item \textbf{Comunicador}: Comunicador horizontal (por filas).
+\end{itemize}
+
 \subsubsection{Código}
 
 \lstinputlisting[style=c]{src/floyd2D.cpp}
