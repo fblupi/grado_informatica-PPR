@@ -167,6 +167,28 @@ donde:
 \[ tama_{bloque} = N / \sqrt{P} \]
 \\ \\
 Una vez empaquetado se puede realizar el \textit{scatter} con los siguientes parámetros: El búfer de entrada sería el búfer de envío que usamos como búfer de salida en el \texttt{MPI\_Pack}, el tamaño el necesario para almacenar los enteros de la submatriz, el tipo de dato \texttt{MPI\_PACKED}, el búfer de recepción el puntero a la submatriz local, el tamaño el de la submatriz, el tipo de dato entero, el proceso raíz el 0 (que ha sido el que ha realizado todas las operaciones anteriores de definición y empaquetado del tipo de dato) y el comunicador el global.
+\\ \\
+Antes de desempaquetar, se puede realizar sin problemas el \texttt{MPI\_Gather} con los siguientes parámetros:
+\begin{itemize}
+	\item \textbf{Dirección inicial del búfer de envío}: Inicio de la submatriz local de cada proceso.
+	\item \textbf{Tamaño del búfer de envío}: Tamaño de la submatriz.
+	\item \textbf{Tipo de dato del búfer de envío}: \texttt{MPI\_INT}.
+	\item \textbf{Dirección inicial del búfer de rececpción}: Búfer utilizado como búfer de envío en el \textit{scatter}.
+	\item \textbf{Tamaño de los elementos que se van a recibir de cada proceso} (en bytes): Tamaño del entero multiplicado por el tamaño de la submatriz.
+	\item \textbf{Tipo de dato del búfer de recepción}: \texttt{MPI\_PACKED}.
+	\item \textbf{Proceso raíz}: 0.
+	\item \textbf{Comunicador}: \texttt{MPI\_COMM\_WORLD}.
+\end{itemize}
+
+Una vez realizada esta operación, hay que desempaquetar (paso inverso al empaquetado anterior). Para ello se utilizará un bucle como el desempaquetado, pero esta vez se utilizará \texttt{MPI\_Unpack} con los siguientes parámetros:
+\begin{itemize}
+	\item \textbf{Búfer de entrada}: Búfer donde hemos recogido las submatrices de todos los procesos en el \textit{gather}.
+	\item \textbf{Tamaño del búfer de entrada} (en bytes): Tamaño de un entero multiplicado por el tamaño de la matriz solución.
+	\item \textbf{Posición actual del búfer} (en bytes): Variable inicializada a cero en la primera iteración del bucle que el propio \texttt{MPI\_Unpack} se encargará de modificar.
+	\item \textbf{Inicio del búfer de salida}: Puntero a la matriz donde se almacenará el resultado con el desplazamiento correspondiente para cada proceso (calculado como en el empaquetado).
+	\item \textbf{Número de elementos de datos de salida}: 1.
+	\item \textbf{Comunicador}: \texttt{MPI\_COMM\_WORLD}.
+\end{itemize}
 
 \subsubsection{Código}
 
