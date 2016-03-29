@@ -285,6 +285,22 @@ Y otro para comunicar la subcolumna con estos parámetros:
 
 \section{Resultados}
 
+\subsection{Consideraciones iniciales}
+
+Para tomar tiempos se ha utilizado un portátil \textit{MSI CX61 2PC} con las siguientes características:
+\begin{itemize}
+	\item \textbf{Procesador}: Intel\textregistered{} Core\texttrademark{} i7-4712MQ CPU @ 2.30GHz
+	\item \textbf{Tamaño de caché}: 6MB
+	\item \textbf{Memoria RAM}: 8GB
+	\item \textbf{S.O.}: Linux Mint 17.3 "Rosa" - Cinnamon (64-bit)
+	\item \textbf{Versión g++}: 4.8.4
+	\item \textbf{Versión MPI}: 1.6.5
+\end{itemize}
+
+\subsection{Tabla de tiempos y ganancia}
+
+Se han tomado tiempos con P = 4 para ambos algoritmos paralelizados. Para tomar los tiempos en secuencial se ha utilizado el algoritmo paralelizado con la versión unidimensional con un solo proceso.
+\\ \\
 \begin{tabular}{ | c | c c c | c c | }
 	\hline
 	N		&	$ T_{sec} $	&	$ T_{1D} $	&	$ T_{2D} $	 &	$ S_{1D} $	 &	$ S_{2D} $	\\
@@ -296,7 +312,10 @@ Y otro para comunicar la subcolumna con estos parámetros:
 	1024    &	1,403187    &	0,4415758   &	0,4668597    &	3,1776809327 &	3,0055860465	\\
 	\hline
 \end{tabular}
-\captionof{table}{Tiempos y ganancia para P = 4 y N = 64, 128, 256, 512 y 1024}
+\\ \\ \\
+Se puede observar que no se llegan a mejorar los resultados del algoritmo secuencial hasta que el tamaño no es mayor a 256. Para un tamaño de 1024 se llega a tener una ganancia de 3 (aproximádamente el 75\%) que no es todavía la de un sistema ideal donde S = P, pero se acerca bastante.
+
+\subsection{Gráficas de tiempos y ganancia}
 
 \begin{figure}[H]
 	\centering
