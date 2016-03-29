@@ -47,7 +47,7 @@
 	numbers=left
 }
 
-\titleformat{\paragraph}{\normalfont\normalsize\bfseries}{\theparagraph}{1em}{}
+\titleformat{\paragraph}{\sffamily\bfseries}{\theparagraph}{1em}{}
 \titlespacing*{\paragraph}{0pt}{3.25ex plus 1ex minus .2ex}{1.5ex plus .2ex}
 	
 \setcounter{page}{0}
@@ -226,6 +226,26 @@ Una vez realizada esta operación, hay que desempaquetar (paso inverso al empaqu
 \end{itemize}
 
 \paragraph{Comunicadores para filas y columnas}
+
+Para definir los comunicadores, lo primero que tenemos que hacer es identificar en qué fila y columna está cada proceso para asignarle ese color en el comunicador. Para ello se calculará de la siguiente forma:
+\[ color_{fila} = id / sqrt{P} \]
+\[ color_{columna} = id \% sqrt{P} \]
+
+Una vez hecho esto, cada proceso sabrá en qué fila y columna está y se podrán realizar dos \texttt{MPI\_Comm\_split}. Para el comunicador horizontal, es decir, por filas se utilizarán los siguientes parámetros:
+\begin{itemize}
+	\item \textbf{Comunicador padre}: \texttt{MPI\_COMM\_WORLD}.
+	\item \textbf{Color}: $ color_{fila} $.
+	\item \textbf{Prioridad}: id del proceso.
+	\item \textbf{Nuevo comunicador}: Variable \texttt{MPI\_Comm} que hemos creado para el comunicador horizontal.
+\end{itemize}
+
+Y para el comunicador vertical, por columnas, los siguientes:
+\begin{itemize}
+	\item \textbf{Comunicador padre}: \texttt{MPI\_COMM\_WORLD}.
+	\item \textbf{Color}: $ color_{columna} $.
+	\item \textbf{Prioridad}: id del proceso.
+	\item \textbf{Nuevo comunicador}: Variable \texttt{MPI\_Comm} que hemos creado para el comunicador vertical.
+\end{itemize}
 
 \subsubsection{Código}
 
