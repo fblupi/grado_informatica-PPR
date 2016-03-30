@@ -300,34 +300,39 @@ Para tomar tiempos se ha utilizado un portátil \textit{MSI CX61 2PC} con las si
 \subsection{Tabla de tiempos y ganancia}
 
 Se han tomado tiempos con P = 4 para ambos algoritmos paralelizados. Para tomar los tiempos en secuencial se ha utilizado el algoritmo paralelizado con la versión unidimensional con un solo proceso.
-\\ \\
+
+\begin{center}
 \begin{tabular}{ | c | c c c | c c | }
 	\hline
-	N		&	$ T_{sec} $	&	$ T_{1D} $	&	$ T_{2D} $	 &	$ S_{1D} $	 &	$ S_{2D} $	\\
+	N		&	$ T_{sec} $	&	$ T_{1D} $	&	$ T_{2D} $	 &	$ S_{1D} $	 	&	$ S_{2D} $		\\
 	\hline
-	64      &	0,000396482 &	0,000868711 &	0,0008886901 &	0,4564023343 &	0,4461414615	\\
-	128     &	0,003013494 &	0,004452289 &	0,004570981  &	0,6768415078 &	0,6592663588	\\
-	256     &	0,0234622   &	0,02117407  &	0,023623352  &	1,1080628335 &	0,9931782755	\\
-	512     &	0,2003635   &	0,10693829  &	0,11696271   &	1,8736366553 &	1,7130545282	\\
-	1024    &	1,403187    &	0,4415758   &	0,4668597    &	3,1776809327 &	3,0055860465	\\
+	60      &	0,00051 	&	0,000826 	&	0,00091 	&	0,617433414 	&	0,5604395604	\\
+	240     &	0,01865 	&	0,015684 	&	0,01613 	&	1,1891099209 	&	1,1562306262	\\
+	480     &	0,13686 	&	0,078875 	&	0,08168 	&	1,7351505547 	&	1,6755631734	\\
+	600     &	0,28684 	&	0,126785 	&	0,13685 	&	2,262412746 	&	2,0960175374	\\
+	800     &	0,57119 	&	0,226878 	&	0,23894 	&	2,5176085826 	&	2,3905164476	\\
+	920     &	0,91609		&	0,336187 	&	0,34841 	&	2,7249417735 	&	2,6293447375	\\
+	1000    &	1,29221		&	0,436815 	&	0,45487 	&	2,9582546387 	&	2,8408336448	\\
+	1200    &	2,03944   	&	0,652061 	&	0,68765 	&	3,1276828395 	&	2,9658110958	\\
 	\hline
 \end{tabular}
-\\ \\ \\
-Se puede observar que no se llegan a mejorar los resultados del algoritmo secuencial hasta que el tamaño no es mayor a 256. Para un tamaño de 1024 se llega a tener una ganancia de 3 (aproximádamente el 75\%) que no es todavía la de un sistema ideal donde S = P, pero se acerca bastante.
+\end{center}
+
+Se puede observar que no se llegan a mejorar los resultados del algoritmo secuencial hasta que el tamaño no es mayor a 240. Para un tamaño de 1200 se llega a tener una ganancia de 3 (aproximádamente el 75\%) que no es todavía la de un sistema ideal donde S = P, pero se acerca bastante.
 
 \subsection{Gráficas de tiempos y ganancia}
 
 \begin{figure}[H]
 	\centering
 	\includegraphics[width=9cm]{img/tiempo}
-	\caption{Gráfica de tiempo para P = 4 y N = 64, 128, 256, 512 y 1024}
+	\caption{Gráfica de tiempo para P = 4 y N = 60, 240, 480, 600, 800, 920, 1000, 1200}
 	\label{fig:grafica_tiempo}
 \end{figure}
 
 \begin{figure}[H]
 	\centering
 	\includegraphics[width=9cm]{img/ganancia}
-	\caption{Gráfica de ganancia para P = 4 y N = 64, 128, 256, 512 y 1024}
+	\caption{Gráfica de ganancia para P = 4 y N = 60, 240, 480, 600, 800, 920, 1000, 1200}
 	\label{fig:grafica_ganancia}
 \end{figure}
 
