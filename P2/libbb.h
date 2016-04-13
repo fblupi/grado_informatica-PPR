@@ -17,103 +17,90 @@ const long int INFINITO = 100000;
 
 extern unsigned int NCIUDADES;
 
-
-
 #ifndef TARCO_T
 #define TARCO_T
 struct tArco {
-	int   v;
-	int   w;
+    int v;
+    int w;
 };
 #endif
-
 
 #ifndef TNODO_T
 #define TNODO_T
 class tNodo {
-	
-public:
-	int* datos;
+    public:
+        int* datos;
+        tNodo() {
+            datos = new int[2 * NCIUDADES];
+        }
 
-		
-		tNodo() {
-			datos = new int[2 * NCIUDADES];
-		}
-		
-		int ci(){
-			return datos[0];
-		}
+        int ci(){
+            return datos[0];
+        }
 
-		int orig_excl(){
-			return datos[1];
-		}
+        int orig_excl(){
+            return datos[1];
+        }
 
-		int* incl(){
-			return &datos[2];
-		}
+        int* incl(){
+            return &datos[2];
+        }
 
-		int* dest_excl(){
-			return &datos[NCIUDADES + 2];
-		}
-		~tNodo() {
-			delete [] datos;
-		}
-	
-		
+        int* dest_excl(){
+            return &datos[NCIUDADES + 2];
+        }
+        ~tNodo() {
+            delete [] datos;
+        }
 };
 #endif
-
 
 #ifndef PILA_T
 #define PILA_T
 
 class tPila{
-	public:
-		int tope;
-		int* nodos;
+    public:
+        int tope;
+        int* nodos;
 
-		
-			
-		tPila(){
-			tope = 0;
-			nodos = new int[2 * NCIUDADES * MAXPILA];
-		}
+        tPila(){
+            tope = 0;
+            nodos = new int[2 * NCIUDADES * MAXPILA];
+        }
 
-		inline bool llena () const{
-			return (tope == 2 * NCIUDADES * MAXPILA);
-		}
+        inline bool llena() const{
+            return (tope == 2 * NCIUDADES * MAXPILA);
+        }
 
-		inline bool vacia () const{
-			return (tope == 0);
-		}
+        inline bool vacia() const{
+            return (tope == 0);
+        }
 
-		inline int tamanio () const{
-			return (tope / (2 * NCIUDADES));
-		}
+        inline int tamanio() const{
+            return (tope / (2 * NCIUDADES));
+        }
 
-		bool push (tNodo & nodo);
+        bool push(tNodo & nodo);
 
-		bool pop (tNodo & nodo);
+        bool pop(tNodo & nodo);
 
-		bool divide (tPila& pila2);
+        bool divide(tPila& pila2);
 
-		void acotar (int U);
+        void acotar(int U);
 
-		~tPila(){
-			delete [] nodos;
-		}
+        ~tPila(){
+            delete [] nodos;
+        }
 };
 #endif
 
-
-
-/* ********************************************************************* */
+/* ******************************************************************** */
 /* *** Cabeceras de funciones para el algoritmo de Branch-and-Bound *** */
-/* ********************************************************************* */
+/* ******************************************************************** */
 
-void LeerMatriz (char archivo[], int** tsp) ;
+void LeerMatriz(char archivo[], int** tsp) ;
 
-bool Inconsistente  (int** tsp);
+bool Inconsistente (int** tsp);
   /* tsp   -  matriz de inicidencia del problema o subproblema            */
   /* Si un subproblema tiene en alguna fila o columna todas sus entradas  */
   /* a infinito entonces es inconsistente: no conduce a ninguna solucion  */
@@ -130,7 +117,7 @@ void Reduce (int** tsp, int *ci);
   /* (sub)problema es la suma de las cantidades restadas en todas    */
   /* las filas/columnas.                                             */
 
-bool EligeArco (tNodo *nodo, int** tsp, tArco *arco);
+bool EligeArco(tNodo *nodo, int** tsp, tArco *arco);
   /*  nodo  -  descripcion de trabajo de un nodo del arbol (subproblema)   */
   /*  tsp   -  matriz de incidencia del subproblema (se supone reducida)   */
   /*  Busca una arco con valor 0 en una fila de la que no se haya incluido */
@@ -168,22 +155,22 @@ void InfiereArcos(tNodo *nodo, int** tsp);
   /* Infiere nuevos arcos a incluir en 'nodo' para aquellas filas que  */
   /* tengan N.ciudades-2 arcos a infinito en 'tsp'                     */
 
-void Reconstruye (tNodo *nodo, int** tsp0, int** tsp);
+void Reconstruye(tNodo *nodo, int** tsp0, int** tsp);
   /* A partir de la descripcion del problema inicial 'tsp0' y de la  */
   /* descripcion abreviada de trabajo 'nodo', construye la matriz de */
   /* incidencia reducida 'tsp' y la cota Inferior 'ci'.              */
 
-void HijoIzq (tNodo *nodo, tNodo *lnodo, int** tsp, tArco arco);
+void HijoIzq(tNodo *nodo, tNodo *lnodo, int** tsp, tArco arco);
   /* Dada la descripcion de trabajo 'nodo', la matriz de incidencia        */
   /* reducida 'tsp', construye la descripcion de trabajo 'l.nodo'          */
   /* a partir de la inclusion del arco                                     */
 
-void HijoDch (tNodo *nodo, tNodo *rnodo, int** tsp, tArco arco);
+void HijoDch(tNodo *nodo, tNodo *rnodo, int** tsp, tArco arco);
   /* Dada la descripcion de trabajo 'nodo' y la matriz de incidencia */
   /* reducida 'tsp', construye la descripcion de trabajo 'r.nodo'    */
   /* a partir de la exclusion del arco <v,w>.                        */
 
-void Ramifica (tNodo *nodo, tNodo *rnodo, tNodo *lnodo, int** tsp0);
+void Ramifica(tNodo *nodo, tNodo *rnodo, tNodo *lnodo, int** tsp0);
   /* Expande nodo, obteniedo el hijo izquierdo lnodo    */
   /* y el hijo derecho rnodo                            */
 
@@ -191,17 +178,17 @@ bool Solucion(tNodo *nodo);
   /* Devuelve TRUE si la descripcion de trabajo 'nodo' corresponde a una */
   /* solucion del problema (si tiene N.ciudades arcos incluidos).        */
 
-int Tamanio (tNodo *nodo);
+int Tamanio(tNodo *nodo);
   /* Devuelve el tamanio del subproblema de la descripcion de trabajo nodo */
   /* (numero de arcos que quedan por incluir)                              */
 
-void InicNodo (tNodo *nodo);
+void InicNodo(tNodo *nodo);
   /* Inicializa la descripcion de trabajo 'nodo' */
 
-void CopiaNodo (tNodo *origen, tNodo *destino);
+void CopiaNodo(tNodo *origen, tNodo *destino);
   /* Copia una descripcion de trabajo origen en otra destino */
 
-void EscribeNodo (tNodo *nodo);
+void EscribeNodo(tNodo *nodo);
   /* Escribe en pantalla el contenido de la descripcion de trabajo nodo */
 
 
