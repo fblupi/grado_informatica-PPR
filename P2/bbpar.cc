@@ -12,10 +12,10 @@ using namespace std;
 unsigned int NCIUDADES;
 int id, P;
 
-Equilibrado_Carga(tPila *pila, bool *fin) {
-  if (Vacia (pila)) { // el proceso no tiene trabajo: pide a otros procesos
+void Equilibrado_Carga(tPila *pila, bool *fin) {
+  if (pila.vacia()) { // el proceso no tiene trabajo: pide a otros procesos
     /* Enviar petición de trabajo al proceso (id + 1) % P */
-    while (Vacia(pila) && !fin) {
+    while (pila.vacia() && !fin) {
       /* Esperar mensaje de otro proceso */
       switch (tipo_de_mensaje) {
         case PETIC: // peticion de trabajo
@@ -45,72 +45,104 @@ Equilibrado_Carga(tPila *pila, bool *fin) {
   }
 }
 
-Difusion_Cota_Superior() {
-  if (difundir_cs_local && !pendiente_retorno_cs) {
-    /* Enviar valor local de cs al proceos (id + 1) % P */
-    pendiente_retorno_cs = true;
-    difundir_cs_local = false;
-  }
-  /* Sondear si hay mensajes de cota superior pendientes */
-  while (hay_mensajes) {
-    /* Recibir mensajes con valor de cota superior desde el proceso (id - 1 + P) % P */
-    /* Actualizar valor local de cota superior */
-
-    if (origen_mensaje == id && difundir_cs_local) {
-      /* Enviar valor local de cs al proceso (id + 1) % P */
-      pendiente_retorno_cs = true;
-      difundir_cs_local = false;
-    } else if (origen_mensaje == id && !difundir_cs_local)
-      pendiente_retorno_cs = false;
-    else // origen mensaje == otro proceso
-      /* Reenviar mensaje al proceso (id + 1) % P */
-    /* Sondear si hay mensajes de cota superior pendientes */
-  }
-}
+// void Difusion_Cota_Superior() {
+//   if (difundir_cs_local && !pendiente_retorno_cs) {
+//     /* Enviar valor local de cs al proceos (id + 1) % P */
+//     pendiente_retorno_cs = true;
+//     difundir_cs_local = false;
+//   }
+//   /* Sondear si hay mensajes de cota superior pendientes */
+//   while (hay_mensajes) {
+//     /* Recibir mensajes con valor de cota superior desde el proceso (id - 1 + P) % P */
+//     /* Actualizar valor local de cota superior */
+//
+//     if (origen_mensaje == id && difundir_cs_local) {
+//       /* Enviar valor local de cs al proceso (id + 1) % P */
+//       pendiente_retorno_cs = true;
+//       difundir_cs_local = false;
+//     } else if (origen_mensaje == id && !difundir_cs_local)
+//       pendiente_retorno_cs = false;
+//     else // origen mensaje == otro proceso
+//       /* Reenviar mensaje al proceso (id + 1) % P */
+//     /* Sondear si hay mensajes de cota superior pendientes */
+//   }
+// }
 
 /* ******************************************************************** */
 
-main (int argc, char **argv) {
-    MPI_Init(argc, argv);
-    MPI_Comm_size(MPI_COMM_WORLD, &P);
-    MPI_Comm_rank(MPI_COMM_WORLD, &id);
+int main (int argc, char **argv) {
+  MPI_Init(argc, argv);
+  MPI_Comm_size(MPI_COMM_WORLD, &P);
+  MPI_Comm_rank(MPI_COMM_WORLD, &id);
 
-    U = INFINITO; // inicializa cota superior
+  switch (argc) {
+    case 3:
+      NCIUDADES = atoi(argv[1]);
+      break;
+    default:
+      if (id == 0)
+        cerr << "La sintaxis es: bbseq <tamaño> <archivo>" << endl;
+      MPI_Finalize();
+      exit(-1);
+    break;
+  }
 
-    if (id == 0)
-      Leer_Problema_Inicial(&nodo);
-    else {
-      Equilibrar_Carga(&pila, &fin);
-      if (!fin)
-        Pop(&fila, &nodo);
-    }
+  int** tsp0 = reservarMatrizCuadrada(NCIUDADES);
+  tNodo   nodo,                   // nodo a explorar
+          nodo_izq,               // hijo izquierdo
+          nodo_dch,               // hijo derecho
+          solucion;               // mejor solucion
+  bool    fin = false,            // condicion de fin
+          nueva_U;                // hay nuevo valor de c.s.
+  int     U = INFINITO;           // valor de c.s.
+  int     iteraciones = 0;
+  tPila   pila;                   // pila de nodos a explorar
 
-    while (!fin) { // ciclo de Branch&Bound
-      Ramifica(&nodo, &nodo_izq, &nodo_dch);
+  InicNodo (&nodo);
 
-      if (Solucion(&nodo_dch)) {
-        if (ci(nodo_dch) < U)
-          U = ci(nodo_dch); // actualiza c.s.
-      } else { // no es nodo hoja
-        if (ci(nodo_dch) < U)
-          Push(&pila, &nodo_dch)
-      }
-    }
-
-    if (Solucion(&nodo_izq)) {
-      if (ci(nodo_izq) < U)
-        U = ci(nodo_izq); // actualiza c.s.
-    } else {
-      if (ci(nodo_izq) < U)
-        Push(&pila, &nodo_izq);
-    }
-
-    Difusion_Cota_Superior(&U);
-    if (hay_nueva_cota_superior)
-      Acotar (&pila, U);
-
+  if (id == 0) {
+    LeerMatriz(argv[2], tsp0);
+  } else {
     Equilibrado_Carga(&pila, &fin);
     if (!fin)
       Pop(&pila, &nodo);
+  }
 
+  double t = MPI_Wtime();
+  while (!fin) { // ciclo de Branch&Bound
+    Ramifica(&nodo, &nodo_izq, &nodo_dch);
+    nueva_U = false;
+
+    if (Solucion(&nodo_dch)) {
+      if (nodo_dch.ci() < U)
+        U = nodo_dch.ci(); // actualiza c.s.
+        nueva_U = true;
+        CopiaNodo(&nodo_dch, &solucion);
+    } else { // no es nodo hoja
+      if (nodo_dch.ci() < U)
+        pila.push(nodo_dch);
+    }
+
+    if (Solucion(&nodo_izq)) {
+      if (nodo_izq.ci() < U)
+        U = nodo_izq.ci(); // actualiza c.s.
+        nueva_U = true;
+        CopiaNodo(&nodo_izq, &solucion);
+    } else {
+      if (nodo_izq.ci() < U)
+        pila.push(nodo_izq);
+    }
+
+    // Difusion_Cota_Superior(&U);
+    // if (nueva_U)
+    //   pila.acotar(U);
+
+    Equilibrado_Carga(&pila, &fin);
+    if (!fin)
+      pila.pop(nodo);
+    iteraciones++;
+  }
+  t = MPI_Wtime() - t;
+  MPI_Finalize();
+  liberarMatriz(tsp0);
 }

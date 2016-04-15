@@ -276,12 +276,12 @@ int Tamanio (tNodo *nodo) {
 void InicNodo (tNodo *nodo) {
   nodo->datos[0] = nodo->datos[1] = 0;
   for (int i = 2; i < 2 * NCIUDADES; i++)
-	nodo->datos[i] = NULO;
+    nodo->datos[i] = NULO;
 }
 
 void CopiaNodo (tNodo *origen, tNodo *destino) {
-  for(int i = 0; i < 2 * NCIUDADES; i++)
-	destino->datos[i] = origen->datos[i];
+  for (int i = 0; i < 2 * NCIUDADES; i++)
+    destino->datos[i] = origen->datos[i];
 }
 
 void EscribeNodo (tNodo *nodo) {

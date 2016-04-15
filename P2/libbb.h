@@ -100,13 +100,13 @@ class tPila{
 
 void LeerMatriz(char archivo[], int** tsp) ;
 
-bool Inconsistente (int** tsp);
+bool Inconsistente(int** tsp);
   /* tsp   -  matriz de inicidencia del problema o subproblema            */
   /* Si un subproblema tiene en alguna fila o columna todas sus entradas  */
   /* a infinito entonces es inconsistente: no conduce a ninguna solucion  */
   /* del TSP                                                              */
 
-void Reduce (int** tsp, int *ci);
+void Reduce(int** tsp, int *ci);
   /* tsp   -  matriz de incidencia del problema o subproblema        */
   /* ci    -  cota Inferior del problema                             */
   /* Reduce la matriz tsp e incrementa ci con las cantidades         */
@@ -146,10 +146,10 @@ void EliminaCiclos(tNodo *nodo, int** tsp);
   /* incluidos en 'nodo'                                              */
 
 void ApuntaArcos(tNodo *nodo, int** tsp);
-/* Dada una descripcion de trabajo 'nodo' y una matriz de inicidencia 'tsp' */
-/* llama a Pon.Arco() para los arcos incluidos en 'nodo' y a Quita.Arco()   */
-/* para los excluidos. Despues llama a Elimina.Ciclos para eliminar ciclos  */
-/* en los caminos                                                           */
+  /* Dada una descripcion de trabajo 'nodo' y una matriz de inicidencia 'tsp' */
+  /* llama a Pon.Arco() para los arcos incluidos en 'nodo' y a Quita.Arco()   */
+  /* para los excluidos. Despues llama a Elimina.Ciclos para eliminar ciclos  */
+  /* en los caminos                                                           */
 
 void InfiereArcos(tNodo *nodo, int** tsp);
   /* Infiere nuevos arcos a incluir en 'nodo' para aquellas filas que  */
@@ -197,4 +197,3 @@ void EscribeNodo(tNodo *nodo);
 int ** reservarMatrizCuadrada(unsigned int orden);
 void liberarMatriz(int** m);
 /* ******************************************************************** */
-
