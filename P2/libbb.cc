@@ -42,7 +42,7 @@ bool pendiente_retorno_cs;	// Indica si el proceso está esperando a recibir la 
 
 
 /* ********************************************************************* */
-/* ****************** Funciones para el Branch-Bound  ********************* */
+/* ****************** Funciones para el Branch-Bound  ****************** */
 /* ********************************************************************* */
 
 void LeerMatriz(char archivo[], int** tsp) {
@@ -100,13 +100,13 @@ void Reduce(int** tsp, int *ci) {
       *ci += min;       /* acumula el total restado para calc c.i. */
     }
   }
-  for (w=0; w<NCIUDADES; w++) {
-    for (v=0, min=INFINITO; v<NCIUDADES; v++)
-      if (tsp[v][w] < min && v!=w)
+  for (w = 0; w < NCIUDADES; w++) {
+    for (v = 0, min = INFINITO; v < NCIUDADES; v++)
+      if (tsp[v][w] < min && v != w)
         min = tsp[v][w];
-    if (min !=0) {
-      for (v=0; v<NCIUDADES; v++)
-        if (tsp[v][w] != INFINITO && v!=w)
+    if (min != 0) {
+      for (v = 0; v < NCIUDADES; v++)
+        if (tsp[v][w] != INFINITO && v != w)
           tsp[v][w] -= min;
       *ci += min;     /* acumula cantidad restada en ci */
     }
@@ -250,10 +250,10 @@ void HijoDch (tNodo *nodo, tNodo *rnodo, int** tsp, tArco arco) {
 void Ramifica (tNodo *nodo, tNodo *lnodo, tNodo *rnodo, int** tsp0) {
   int** tsp = reservarMatrizCuadrada(NCIUDADES);
   tArco arco;
-  Reconstruye (nodo, tsp0, tsp);
-  EligeArco (nodo, tsp, &arco);
-  HijoIzq (nodo, lnodo, tsp, arco);
-  HijoDch (nodo, rnodo, tsp, arco);
+  Reconstruye(nodo, tsp0, tsp);
+  EligeArco(nodo, tsp, &arco);
+  HijoIzq(nodo, lnodo, tsp, arco);
+  HijoDch(nodo, rnodo, tsp, arco);
 	liberarMatriz(tsp);
 }
 
