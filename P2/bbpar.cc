@@ -98,53 +98,69 @@ int main (int argc, char **argv) {
   int     iteraciones = 0;
   tPila   pila;                   // pila de nodos a explorar
 
-  InicNodo(&nodo);                // inicializa estructura nodo
-
   if (id == 0) {
     LeerMatriz(argv[2], tsp0);
     MPI_Bcast(&tsp0[0][0], NCIUDADES * NCIUDADES, MPI_INT, 0, MPI_COMM_WORLD);
+    InicNodo(&nodo);                // inicializa estructura nodo
   } else {
     MPI_Bcast(&tsp0[0][0], NCIUDADES * NCIUDADES, MPI_INT, 0, MPI_COMM_WORLD);
-    // Equilibrado_Carga(&pila, &fin);
-    // if (!fin)
-    //   pila.pop(&nodo);
+    Equilibrado_Carga(&pila, &fin);
+    if (!fin)
+      pila.pop(&nodo);
   }
 
-  // double t = MPI_Wtime();
-  // while (!fin) { // ciclo de Branch&Bound
-  //   Ramifica(&nodo, &nodo_izq, &nodo_dch, tsp0);
-  //   nueva_U = false;
-  //
-  //   if (Solucion(&nodo_dch)) {
-  //     if (nodo_dch.ci() < U)
-  //       U = nodo_dch.ci(); // actualiza c.s.
-  //       nueva_U = true;
-  //       CopiaNodo(&nodo_dch, &solucion);
-  //   } else { // no es nodo hoja
-  //     if (nodo_dch.ci() < U)
-  //       pila.push(nodo_dch);
-  //   }
-  //
-  //   if (Solucion(&nodo_izq)) {
-  //     if (nodo_izq.ci() < U)
-  //       U = nodo_izq.ci(); // actualiza c.s.
-  //       nueva_U = true;
-  //       CopiaNodo(&nodo_izq, &solucion);
-  //   } else {
-  //     if (nodo_izq.ci() < U)
-  //       pila.push(nodo_izq);
-  //   }
-  //
-  //   // Difusion_Cota_Superior(&U);
-  //   // if (nueva_U)
-  //   //   pila.acotar(U);
-  //
-  //   // Equilibrado_Carga(&pila, &fin);
-  //   if (!fin)
-  //     pila.pop(nodo);
-  //   iteraciones++;
-  // }
-  // t = MPI_Wtime() - t;
+  double t = MPI_Wtime();
+  if (id == 0)
+  while (!fin) { // ciclo de Branch&Bound
+    cout << "it " << iteraciones << endl;
+    Ramifica(&nodo, &nodo_izq, &nodo_dch, tsp0);
+    nueva_U = false;
+
+    if (Solucion(&nodo_dch)) {
+      cout << "[" << id << "]: " << "Hijo dcha. es solución" << endl;
+      if (nodo_dch.ci() < U) {
+        cout << "[" << id << "]: " << "Hijo dcha. es nueva CS" << endl;
+        U = nodo_dch.ci(); // actualiza c.s.
+        nueva_U = true;
+        CopiaNodo(&nodo_dch, &solucion);
+      }
+    } else { // no es nodo hoja
+      cout << "[" << id << "]: " << "Hijo dcha. no es solución" << endl;
+      if (nodo_dch.ci() < U) {
+        cout << "[" << id << "]: " << "Hijo dcha. a la pila" << endl;
+        pila.push(nodo_dch);
+      }
+    }
+
+    if (Solucion(&nodo_izq)) {
+      cout << "[" << id << "]: " << "Hijo izda. es solución" << endl;
+      if (nodo_izq.ci() < U) {
+        cout << "[" << id << "]: " << "Hijo izda. es nueva CS" << endl;
+        U = nodo_izq.ci(); // actualiza c.s.
+        nueva_U = true;
+        CopiaNodo(&nodo_izq, &solucion);
+      }
+    } else { // no es nodo hoja
+      cout << "[" << id << "]: " << "Hijo izda. no es solución" << endl;
+      if (nodo_izq.ci() < U) {
+        cout << "[" << id << "]: " << "Hijo izda. a la pila" << endl;
+        pila.push(nodo_izq);
+      }
+    }
+
+    // Difusion_Cota_Superior(&U);
+    if (nueva_U)
+       pila.acotar(U);
+
+    Equilibrado_Carga(&pila, &fin);
+    if (!fin)
+      pila.pop(nodo);
+    iteraciones++;
+  }
+  t = MPI_Wtime() - t;
+
+  if (id == 0) { EscribeNodo(&solucion); cout << iteraciones << endl; }
+
   MPI_Finalize();
   liberarMatriz(tsp0);
 }
