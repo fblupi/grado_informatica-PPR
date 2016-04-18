@@ -9,41 +9,83 @@
 
 using namespace std;
 
+#define PETIC 0
+#define NODOS 1
+
 unsigned int NCIUDADES;
 int id, P;
 
-// void Equilibrado_Carga(tPila *pila, bool *fin) {
-//   if (pila.vacia()) { // el proceso no tiene trabajo: pide a otros procesos
-//     /* Enviar petición de trabajo al proceso (id + 1) % P */
-//     while (pila.vacia() && !fin) {
-//       /* Esperar mensaje de otro proceso */
-//       switch (tipo_de_mensaje) {
-//         case PETIC: // peticion de trabajo
-//           /* Recibir mensaje de petición de trabajo */
-//           if (solicitante == id) { // peticion devuelta
-//             /* Reenviar petición de trabajo al proceso (id + 1) % P */
-//             /* Iniciar detección de posible situación de fin */
-//           } else // petición de otro proceso: la retransmite al siguiente
-//             /* Pasar petición de trabajo al proceso (id + 1) % P */
-//           break;
-//         case NODOS: // resultado de una petición de trabajo
-//           /* Recibir nodos del proceso donante */
-//           /* Almacenar nodos recibidos en la pila */
-//       }
-//     }
-//   }
-//   if (!fin) { // el proceso tiene nodos para trabajar
-//     /* Sondear si hay mensajes pendientes de otros procesos */
-//     while (hay_mensajes) { // atiende peticiones mientras haya mensajes
-//       /* Recibir mensaje de petición de trabajo */
-//       if (hay_suficientes_nodos_en_la_pila_para_ceder)
-//         /* Enviar nodos al proceso solicitante */
-//       else
-//         /* Pasar petición de trabajo al proceso (id + 1) % P */
-//       /* Sondear si hay mensajes pendientes de otros procesos */
-//     }
-//   }
-// }
+void Equilibrado_Carga(tPila *pila, bool *fin) {
+  //cout << "[" << id << "]: " << "Equilibrando carga. FIN = " << *fin << endl;
+  int solicitante, flag;
+  MPI_Status estado;
+  tNodo nodo;
+  if (pila->vacia()) { // el proceso no tiene trabajo: pide a otros procesos
+    //cout << "[" << id << "]: " << "Pila vacía" << endl;
+    /* Enviar petición de trabajo al proceso (id + 1) % P */
+    //cout << "[" << id << "]: " << "Voy a enviar petición de nodo" << endl;
+    MPI_Send(&id, 1, MPI_INT, (id + 1) % P, PETIC, MPI_COMM_WORLD);
+    //cout << "[" << id << "]: " << "Petición de nodo enviada" << endl;
+    while (pila->vacia() && !*fin) {
+      /* Esperar mensaje de otro proceso */
+      //cout << "[" << id << "]: " << "Esperando mensaje" << endl;
+      MPI_Probe((id - 1) % P, MPI_ANY_TAG, MPI_COMM_WORLD, &estado);
+      //cout << "[" << id << "]: " << "Mensaje recibido" << endl;
+      switch (estado.MPI_TAG) {
+        case PETIC: // peticion de trabajo
+          //cout << "[" << id << "]: " << "Recibir mensaje de tipo petición" << endl;
+          /* Recibir mensaje de petición de trabajo */
+          MPI_Recv(&solicitante, 1, MPI_INT, MPI_ANY_SOURCE, PETIC, MPI_COMM_WORLD, &estado);
+          if (solicitante == id) { // peticion devuelta
+            /* Reenviar petición de trabajo al proceso (id + 1) % P */
+            //cout << "[" << id << "]: " << "Voy a reenviar petición de nodo" << endl;
+            MPI_Send(&solicitante, 1, MPI_INT, (id + 1) % P, PETIC, MPI_COMM_WORLD);
+            //cout << "[" << id << "]: " << "Petición de nodo reenviada" << endl;
+            /* Iniciar detección de posible situación de fin */
+            //cout << "[" << id << "]: " << "Posible fin" << endl;
+          } else { // petición de otro proceso: la retransmite al siguiente
+            /* Pasar petición de trabajo al proceso (id + 1) % P */
+            //cout << "[" << id << "]: " << "Voy a pasar petición" << endl;
+            MPI_Send(&solicitante, 1, MPI_INT, (id + 1) % P, PETIC, MPI_COMM_WORLD);
+            //cout << "[" << id << "]: " << "Petición pasada" << endl;
+          }
+          break;
+        case NODOS: // resultado de una petición de trabajo
+          //cout << "[" << id << "]: " << "Recibir mensaje de tipo nodos" << endl;
+          /* Recibir nodos del proceso donante */
+          MPI_Recv(&nodo.datos[0], 2 * NCIUDADES, MPI_INT, MPI_ANY_SOURCE, NODOS, MPI_COMM_WORLD, &estado);
+          /* Almacenar nodos recibidos en la pila */
+          pila->push(nodo);
+          //cout << "[" << id << "]: " << "Nodo almacenado" << endl;
+      }
+    }
+  }
+  if (!*fin) { // el proceso tiene nodos para trabajar
+    /* Sondear si hay mensajes pendientes de otros procesos */
+    //cout << "[" << id << "]: " << "Sondea si hay mensajes pendientes de otros procesos" << endl;
+    MPI_Iprobe((id - 1) % P, MPI_ANY_TAG, MPI_COMM_WORLD, &flag, &estado);
+    while (flag) { // atiende peticiones mientras haya mensajes
+      //cout << "[" << id << "]: " << "Recibe mensaje de petición de trabajo" << endl;
+      /* Recibir mensaje de petición de trabajo */
+      MPI_Recv(&solicitante, 1, MPI_INT, MPI_ANY_SOURCE, PETIC, MPI_COMM_WORLD, &estado);
+      if (pila->tamanio() > 1) {
+        /* Enviar nodos al proceso solicitante */
+        pila->pop(nodo);
+        //cout << "[" << id << "]: " << "Voy a enviar nodo" << endl;
+        MPI_Send(&nodo.datos[0], 2 * NCIUDADES, MPI_INT, solicitante, NODOS, MPI_COMM_WORLD);
+        //cout << "[" << id << "]: " << "Nodo enviado" << endl;
+      } else {
+        /* Pasar petición de trabajo al proceso (id + 1) % P */
+        //cout << "[" << id << "]: " << "Voy a reenviar petición de nodo" << endl;
+        MPI_Send(&solicitante, 1, MPI_INT, (id + 1) % P, PETIC, MPI_COMM_WORLD);
+        //cout << "[" << id << "]: " << "Petición de nodo reenviada" << endl;
+      }
+      /* Sondear si hay mensajes pendientes de otros procesos */
+      //cout << "[" << id << "]: " << "Sondea si hay mensajes pendientes de otros procesos" << endl;
+      MPI_Iprobe((id - 1) % P, MPI_ANY_TAG, MPI_COMM_WORLD, &flag, &estado);
+    }
+  }
+}
 
 // void Difusion_Cota_Superior() {
 //   if (difundir_cs_local && !pendiente_retorno_cs) {
@@ -106,60 +148,60 @@ int main (int argc, char **argv) {
     MPI_Bcast(&tsp0[0][0], NCIUDADES * NCIUDADES, MPI_INT, 0, MPI_COMM_WORLD);
     Equilibrado_Carga(&pila, &fin);
     if (!fin)
-      pila.pop(&nodo);
+      pila.pop(nodo);
   }
 
   double t = MPI_Wtime();
-  if (id == 0)
   while (!fin) { // ciclo de Branch&Bound
-    cout << "it " << iteraciones << endl;
+    //cout << "[" << id << "]: " << "it " << iteraciones << endl;
     Ramifica(&nodo, &nodo_izq, &nodo_dch, tsp0);
     nueva_U = false;
 
     if (Solucion(&nodo_dch)) {
-      cout << "[" << id << "]: " << "Hijo dcha. es solución" << endl;
+      //cout << "[" << id << "]: " << "Hijo dcha. es solución" << endl;
       if (nodo_dch.ci() < U) {
-        cout << "[" << id << "]: " << "Hijo dcha. es nueva CS" << endl;
+        //cout << "[" << id << "]: " << "Hijo dcha. es nueva CS" << endl;
         U = nodo_dch.ci(); // actualiza c.s.
         nueva_U = true;
         CopiaNodo(&nodo_dch, &solucion);
       }
     } else { // no es nodo hoja
-      cout << "[" << id << "]: " << "Hijo dcha. no es solución" << endl;
+      //cout << "[" << id << "]: " << "Hijo dcha. no es solución" << endl;
       if (nodo_dch.ci() < U) {
-        cout << "[" << id << "]: " << "Hijo dcha. a la pila" << endl;
+        //cout << "[" << id << "]: " << "Hijo dcha. a la pila" << endl;
         pila.push(nodo_dch);
       }
     }
 
     if (Solucion(&nodo_izq)) {
-      cout << "[" << id << "]: " << "Hijo izda. es solución" << endl;
+      //cout << "[" << id << "]: " << "Hijo izda. es solución" << endl;
       if (nodo_izq.ci() < U) {
-        cout << "[" << id << "]: " << "Hijo izda. es nueva CS" << endl;
+        //cout << "[" << id << "]: " << "Hijo izda. es nueva CS" << endl;
         U = nodo_izq.ci(); // actualiza c.s.
         nueva_U = true;
         CopiaNodo(&nodo_izq, &solucion);
       }
     } else { // no es nodo hoja
-      cout << "[" << id << "]: " << "Hijo izda. no es solución" << endl;
+      //cout << "[" << id << "]: " << "Hijo izda. no es solución" << endl;
       if (nodo_izq.ci() < U) {
-        cout << "[" << id << "]: " << "Hijo izda. a la pila" << endl;
+        //cout << "[" << id << "]: " << "Hijo izda. a la pila" << endl;
         pila.push(nodo_izq);
       }
     }
 
     // Difusion_Cota_Superior(&U);
     if (nueva_U)
-       pila.acotar(U);
+      pila.acotar(U);
 
     Equilibrado_Carga(&pila, &fin);
     if (!fin)
       pila.pop(nodo);
+
     iteraciones++;
   }
   t = MPI_Wtime() - t;
 
-  if (id == 0) { EscribeNodo(&solucion); cout << iteraciones << endl; }
+  if (id == 0) { EscribeNodo(&solucion); if (id != 0) cout << iteraciones << endl; }
 
   MPI_Finalize();
   liberarMatriz(tsp0);
