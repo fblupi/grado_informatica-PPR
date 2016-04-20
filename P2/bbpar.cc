@@ -145,8 +145,8 @@ int main (int argc, char **argv) {
   int     iteraciones = 0;
   tPila   pila;                   // pila de nodos a explorar
 
-  MPI_Comm_split(MPI_COMM_WORLD, 0 ,id, &COMM_EQUILIBRADO_CARGA);
-  MPI_Comm_split(MPI_COMM_WORLD, 0 ,id, &COMM_DIFUSION_COTA);
+  MPI_Comm_dup(MPI_COMM_WORLD, &COMM_EQUILIBRADO_CARGA);
+  MPI_Comm_dup(MPI_COMM_WORLD, &COMM_DIFUSION_COTA);
 
   if (id == 0) {
     LeerMatriz(argv[2], tsp0);
