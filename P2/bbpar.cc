@@ -70,7 +70,6 @@ int main (int argc, char **argv) {
 
   double t = MPI_Wtime();
   while (!fin) { // ciclo de Branch&Bound
-    //cout << "[" << rank << "]: " << "it " << iteraciones << endl;
     Ramifica(&nodo, &nodo_izq, &nodo_dch, tsp0);
     nueva_U = false;
 

@@ -38,8 +38,6 @@ int anterior;	// Identificador del anterior proceso
 int siguiente;	// Identificador del siguiente proceso
 bool difundir_cs_local;	// Indica si el proceso puede difundir su cota inferior local
 bool pendiente_retorno_cs;	// Indica si el proceso está esperando a recibir la cota inferior de otro proceso
-int inbuff = 1;
-int outbuff;
 
 // Variables auxiliares
 MPI_Status status;  // Datos del mensaje
@@ -76,7 +74,7 @@ void Equilibrado_Carga(tPila *pila, bool *fin, tNodo *solucion) {
                 color_token = color;
               }
               /* Enviar Mensaje_testigo a anterior */
-              MPI_Send(&inbuff, 1, MPI_INT, anterior, TOKEN, comunicadorCarga);
+              MPI_Send(NULL, 0, MPI_INT, anterior, TOKEN, comunicadorCarga);
               token_presente = false;
               color = BLANCO;
             }
@@ -92,7 +90,7 @@ void Equilibrado_Carga(tPila *pila, bool *fin, tNodo *solucion) {
           break;
         case TOKEN:
           /* Recibir Mensajes de Petición pendientes */
-          MPI_Recv(&outbuff, 1, MPI_INT, siguiente, TOKEN, comunicadorCarga, &status);
+          MPI_Recv(NULL, 0, MPI_INT, siguiente, TOKEN, comunicadorCarga, &status);
           token_presente = true;
           if (estado == PASIVO) {
             if (rank == 0 && color == BLANCO && color_token == BLANCO) {
@@ -111,7 +109,7 @@ void Equilibrado_Carga(tPila *pila, bool *fin, tNodo *solucion) {
                 color_token = color;
               }
               /* Enviar Mensaje_testigo a anterior */
-              MPI_Send(&inbuff, 1, MPI_INT, anterior, TOKEN, comunicadorCarga);
+              MPI_Send(NULL, 0, MPI_INT, anterior, TOKEN, comunicadorCarga);
               token_presente = false;
               color = BLANCO;
             }
@@ -152,7 +150,7 @@ void Equilibrado_Carga(tPila *pila, bool *fin, tNodo *solucion) {
           break;
         case TOKEN:
           /* Recibir Mensaje_testigo de siguiente */
-          MPI_Recv(&outbuff, 1, MPI_INT, siguiente, TOKEN, comunicadorCarga, &status);
+          MPI_Recv(NULL, 0, MPI_INT, siguiente, TOKEN, comunicadorCarga, &status);
           token_presente = true;
           break;
       }
