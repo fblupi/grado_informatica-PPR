@@ -68,33 +68,25 @@ int main (int argc, char **argv) {
     nueva_U = false;
 
     if (Solucion(&nodo_dch)) {
-      //cout << "[" << rank << "]: " << "Hijo dcha. es solución" << endl;
       if (nodo_dch.ci() < U) {
-        //cout << "[" << rank << "]: " << "Hijo dcha. es nueva CS" << endl;
         U = nodo_dch.ci(); // actualiza c.s.
         nueva_U = true;
         CopiaNodo(&nodo_dch, &solucion);
       }
     } else { // no es nodo hoja
-      //cout << "[" << rank << "]: " << "Hijo dcha. no es solución" << endl;
       if (nodo_dch.ci() < U) {
-        //cout << "[" << rank << "]: " << "Hijo dcha. a la pila" << endl;
         pila.push(nodo_dch);
       }
     }
 
     if (Solucion(&nodo_izq)) {
-      //cout << "[" << rank << "]: " << "Hijo izda. es solución" << endl;
       if (nodo_izq.ci() < U) {
-        //cout << "[" << rank << "]: " << "Hijo izda. es nueva CS" << endl;
         U = nodo_izq.ci(); // actualiza c.s.
         nueva_U = true;
         CopiaNodo(&nodo_izq, &solucion);
       }
     } else { // no es nodo hoja
-      //cout << "[" << rank << "]: " << "Hijo izda. no es solución" << endl;
       if (nodo_izq.ci() < U) {
-        //cout << "[" << rank << "]: " << "Hijo izda. a la pila" << endl;
         pila.push(nodo_izq);
       }
     }
@@ -111,8 +103,10 @@ int main (int argc, char **argv) {
   }
   t = MPI_Wtime() - t;
 
-  cout << "[" << rank << "]: Solución = " << endl;
-  EscribeNodo(&solucion);
+  if (rank == 0) {
+    cout << "Solución = " << endl;
+    EscribeNodo(&solucion);
+  }
   cout << "[" << rank << "]: " << iteraciones << endl;
 
   MPI_Finalize();

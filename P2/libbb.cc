@@ -48,70 +48,49 @@ int cs;  // Cota superior recibida
 tPila pilaNueva;  // Pila que se envía
 
 void Equilibrado_Carga(tPila *pila, bool *fin) {
-  //std::cout << "[" << rank << "]: " << "Equilibrando carga" << std::endl;
   if (pila->vacia()) { // el proceso no tiene trabajo: pide a otros procesos
-    //std::cout << "[" << rank << "]: " << "Pila vacía" << std::endl;
     /* Enviar petición de trabajo al proceso (rank + 1) % size */
-    //std::cout << "[" << rank << "]: " << "Voy a enviar petición de nodo" << std::endl;
     MPI_Send(&rank, 1, MPI_INT, (rank + 1) % size, PETICION, comunicadorCarga);
-    //std::cout << "[" << rank << "]: " << "Petición de nodo enviada" << std::endl;
     while (pila->vacia() && !*fin) {
       /* Esperar mensaje de otro proceso */
-      //std::cout << "[" << rank << "]: " << "Esperando mensaje" << std::endl;
       MPI_Probe(MPI_ANY_SOURCE, MPI_ANY_TAG, comunicadorCarga, &status);
-      //std::cout << "[" << rank << "]: " << "Mensaje recibido" << std::endl;
       switch (status.MPI_TAG) {
         case PETICION: // peticion de trabajo
-          //std::cout << "[" << rank << "]: " << "Recibir mensaje de tipo petición" << std::endl;
           /* Recibir mensaje de petición de trabajo */
           MPI_Recv(&solicitante, 1, MPI_INT, MPI_ANY_SOURCE, PETICION, comunicadorCarga, &status);
           if (solicitante == rank) { // peticion devuelta
             /* Reenviar petición de trabajo al proceso (rank + 1) % size */
-            //std::cout << "[" << rank << "]: " << "Voy a reenviar petición de nodo" << std::endl;
             MPI_Send(&solicitante, 1, MPI_INT, (rank + 1) % size, PETICION, comunicadorCarga);
-            //std::cout << "[" << rank << "]: " << "Petición de nodo reenviada" << std::endl;
             /* Iniciar detección de posible situación de fin */
-            //std::cout << "[" << rank << "]: " << "Posible fin" << std::endl;
           } else { // petición de otro proceso: la retransmite al siguiente
             /* Pasar petición de trabajo al proceso (rank + 1) % size */
-            //std::cout << "[" << rank << "]: " << "Voy a pasar petición" << std::endl;
             MPI_Send(&solicitante, 1, MPI_INT, (rank + 1) % size, PETICION, comunicadorCarga);
-            //std::cout << "[" << rank << "]: " << "Petición pasada de nodo " << solicitante << std::endl;
           }
           break;
         case NODOS: // resultado de una petición de trabajo
           MPI_Get_count(&status, MPI_INT, &tamanio);
-          //std::cout << "[" << rank << "]: " << "Recibir mensaje de tipo nodos" << std::endl;
           /* Recibir nodos del proceso donante */
           MPI_Recv(&pila->nodos[0], tamanio, MPI_INT, MPI_ANY_SOURCE, NODOS, comunicadorCarga, &status);
           /* Almacenar nodos recibidos en la pila */
           pila->tope = tamanio;
-          //std::cout << "[" << rank << "]: " << "Nodo almacenado" << std::endl;
       }
     }
   }
   if (!*fin) { // el proceso tiene nodos para trabajar
     /* Sondear si hay mensajes pendientes de otros procesos */
-    //std::cout << "[" << rank << "]: " << "Sondea si hay mensajes pendientes de otros procesos" << std::endl;
     MPI_Iprobe(MPI_ANY_SOURCE, MPI_ANY_TAG, comunicadorCarga, &hay_mensajes, &status);
     while (hay_mensajes) { // atiende peticiones mientras haya mensajes
-      //std::cout << "[" << rank << "]: " << "Recibe mensaje de petición de trabajo. Tamaño pila: " << pila->tamanio() << std::endl;
       /* Recibir mensaje de petición de trabajo */
       MPI_Recv(&solicitante, 1, MPI_INT, MPI_ANY_SOURCE, PETICION, comunicadorCarga, &status);
       if (pila->tamanio() > 1) {
         /* Enviar nodos al proceso solicitante */
         pila->divide(pilaNueva);
-        //std::cout << "[" << rank << "]: " << "Voy a enviar nodo" << std::endl;
         MPI_Send(&pilaNueva.nodos[0], pilaNueva.tope, MPI_INT, solicitante, NODOS, comunicadorCarga);
-        //std::cout << "[" << rank << "]: " << "Nodo enviado" << std::endl;
       } else {
         /* Pasar petición de trabajo al proceso (rank + 1) % size */
-        //std::cout << "[" << rank << "]: " << "Voy a reenviar petición de nodo" << std::endl;
         MPI_Send(&solicitante, 1, MPI_INT, (rank + 1) % size, PETICION, comunicadorCarga);
-        //std::cout << "[" << rank << "]: " << "Petición de nodo reenviada" << std::endl;
       }
       /* Sondear si hay mensajes pendientes de otros procesos */
-      //std::cout << "[" << rank << "]: " << "Sondea si hay mensajes pendientes de otros procesos" << std::endl;
       MPI_Iprobe(MPI_ANY_SOURCE, MPI_ANY_TAG, comunicadorCarga, &hay_mensajes, &status);
     }
   }
@@ -158,10 +137,10 @@ void LeerMatriz(char archivo[], int** tsp) {
   int i, j;
 
   if (!(fp = fopen(archivo, "r" ))) {
-    printf ("ERROR abriendo archivo %s en modo lectura.\n", archivo);
+    printf("ERROR abriendo archivo %s en modo lectura.\n", archivo);
     exit(1);
   }
-  printf ("-------------------------------------------------------------\n");
+  printf("-------------------------------------------------------------\n");
   for (i = 0; i < NCIUDADES; i++) {
     for (j = 0; j < NCIUDADES; j++) {
       fscanf(fp, "%d", &tsp[i][j]);
