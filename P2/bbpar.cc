@@ -32,15 +32,15 @@ int main (int argc, char **argv) {
   }
 
   int**   tsp0 = reservarMatrizCuadrada(NCIUDADES);
-  tNodo   nodo,                     // nodo a explorar
-          nodo_izq,                 // hijo izquierdo
-          nodo_dch,                 // hijo derecho
-          solucion;                 // mejor solucion
+  tNodo   *nodo = new tNodo(),      // nodo a explorar
+          *nodo_izq = new tNodo(),  // hijo izquierdo
+          *nodo_dch = new tNodo(),  // hijo derecho
+          *solucion = new tNodo();  // mejor solucion
   bool    fin = false,              // condicion de fin
           nueva_U;                  // hay nuevo valor de c.s.
   int     U,                        // valor de c.s.
           iteraciones = 0;
-  tPila   pila;                     // pila de nodos a explorar
+  tPila   *pila = new tPila();      // pila de nodos a explorar
 
   extern bool     token_presente;   // poseedor del token
   extern int      anterior,         // proceso anterior
@@ -59,51 +59,51 @@ int main (int argc, char **argv) {
     token_presente = true;
     LeerMatriz(argv[2], tsp0);
     MPI_Bcast(&tsp0[0][0], NCIUDADES * NCIUDADES, MPI_INT, 0, MPI_COMM_WORLD);
-    InicNodo(&nodo);                // inicializa estructura nodo
+    InicNodo(nodo);                // inicializa estructura nodo
   } else {
     token_presente = false;
     MPI_Bcast(&tsp0[0][0], NCIUDADES * NCIUDADES, MPI_INT, 0, MPI_COMM_WORLD);
-    Equilibrado_Carga(&pila, &fin, &solucion);
+    Equilibrado_Carga(pila, &fin, solucion);
     if (!fin)
-      pila.pop(nodo);
+      pila->pop(*nodo);
   }
 
   double t = MPI_Wtime();
   while (!fin) { // ciclo de Branch&Bound
-    Ramifica(&nodo, &nodo_izq, &nodo_dch, tsp0);
+    Ramifica(nodo, nodo_izq, nodo_dch, tsp0);
     nueva_U = false;
 
-    if (Solucion(&nodo_dch)) {
-      if (nodo_dch.ci() < U) {
-        U = nodo_dch.ci(); // actualiza c.s.
+    if (Solucion(nodo_dch)) {
+      if (nodo_dch->ci() < U) {
+        U = nodo_dch->ci(); // actualiza c.s.
         nueva_U = true;
-        CopiaNodo(&nodo_dch, &solucion);
+        CopiaNodo(nodo_dch, solucion);
       }
     } else { // no es nodo hoja
-      if (nodo_dch.ci() < U) {
-        pila.push(nodo_dch);
+      if (nodo_dch->ci() < U) {
+        pila->push(*nodo_dch);
       }
     }
 
-    if (Solucion(&nodo_izq)) {
-      if (nodo_izq.ci() < U) {
-        U = nodo_izq.ci(); // actualiza c.s.
+    if (Solucion(nodo_izq)) {
+      if (nodo_izq->ci() < U) {
+        U = nodo_izq->ci(); // actualiza c.s.
         nueva_U = true;
-        CopiaNodo(&nodo_izq, &solucion);
+        CopiaNodo(nodo_izq, solucion);
       }
     } else { // no es nodo hoja
-      if (nodo_izq.ci() < U) {
-        pila.push(nodo_izq);
+      if (nodo_izq->ci() < U) {
+        pila->push(*nodo_izq);
       }
     }
 
     Difusion_Cota_Superior(&U);
     if (nueva_U)
-      pila.acotar(U);
+      pila->acotar(U);
 
-    Equilibrado_Carga(&pila, &fin, &solucion);
+    Equilibrado_Carga(pila, &fin, solucion);
     if (!fin)
-      pila.pop(nodo);
+      pila->pop(*nodo);
 
     iteraciones++;
   }
@@ -111,11 +111,19 @@ int main (int argc, char **argv) {
 
   if (rank == 0) {
      cout << "Solución = " << endl;
-     EscribeNodo(&solucion);
+     EscribeNodo(solucion);
      cout << "Tiempo gastado= " << t << endl;
   }
-  cout << "[" << rank << "] Numbero de iteraciones: " << iteraciones << endl;
+  cout << "[" << rank << "] Numero de iteraciones: " << iteraciones << endl;
+
+  liberarMatriz(tsp0);
+  delete pila;
+  delete nodo;
+  delete nodo_izq;
+  delete nodo_dch;
+  delete solucion;
 
   MPI_Finalize();
-  liberarMatriz(tsp0);
+
+  exit(0);
 }

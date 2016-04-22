@@ -45,8 +45,8 @@ int solicitante;  // Id del proceso que solicita trabajo
 int hay_mensajes; // Hay o no mensajes pendientes
 int tamanio;  // Tamaño de pila que se envía
 int cs;  // Cota superior recibida
-tPila pilaNueva;  // Pila que se envía
-tNodo posibleSol; // Solución recibida en el fin
+tPila *pilaNueva; // Pila que se envía
+tNodo *posibleSol; // Solución recibida en el fin
 
 /* ********************************************************************* */
 
@@ -98,10 +98,12 @@ void Equilibrado_Carga(tPila *pila, bool *fin, tNodo *solucion) {
               /* Enviar Mensaje_fin al proc. siguiente */
               MPI_Send(&solucion->datos[0], 2 * NCIUDADES, MPI_INT, siguiente, FIN, comunicadorCarga);
               /* Recibir Mensaje_fin del proc. anterior */
-              MPI_Recv(&posibleSol.datos[0], 2 * NCIUDADES, MPI_INT, anterior, FIN, comunicadorCarga, &status);
-              if (posibleSol.ci() < solucion->ci()) {
-                solucion->datos = posibleSol.datos;
+              posibleSol = new tNodo();
+              MPI_Recv(&posibleSol->datos[0], 2 * NCIUDADES, MPI_INT, anterior, FIN, comunicadorCarga, &status);
+              if (posibleSol->ci() < solucion->ci()) {
+                CopiaNodo(posibleSol, solucion);
               }
+              delete posibleSol;
             } else {
               if (rank == 0) {
                 color_token = BLANCO;
@@ -117,11 +119,13 @@ void Equilibrado_Carga(tPila *pila, bool *fin, tNodo *solucion) {
           break;
         case FIN:
           /* Recibir mensaje de fin */
-          MPI_Recv(&posibleSol.datos[0], 2 * NCIUDADES, MPI_INT, anterior, FIN, comunicadorCarga, &status);
           *fin = true;
-          if (posibleSol.ci() < solucion->ci()) {
-            solucion->datos = posibleSol.datos;
+          posibleSol = new tNodo();
+          MPI_Recv(&posibleSol->datos[0], 2 * NCIUDADES, MPI_INT, anterior, FIN, comunicadorCarga, &status);
+          if (posibleSol->ci() < solucion->ci()) {
+            CopiaNodo(posibleSol, solucion);
           }
+          delete posibleSol;
           /* Enviar Mensaje_fin al proc. siguiente */
           MPI_Send(&solucion->datos[0], 2 * NCIUDADES, MPI_INT, siguiente, FIN, comunicadorCarga);
           break;
@@ -138,8 +142,10 @@ void Equilibrado_Carga(tPila *pila, bool *fin, tNodo *solucion) {
           MPI_Recv(&solicitante, 1, MPI_INT, anterior, PETICION, comunicadorCarga, &status);
           if (pila->tamanio() > 1) {
             /* Enviar nodos al proceso solicitante */
-            pila->divide(pilaNueva);
-            MPI_Send(&pilaNueva.nodos[0], pilaNueva.tope, MPI_INT, solicitante, NODOS, comunicadorCarga);
+            pilaNueva = new tPila();
+            pila->divide(*pilaNueva);
+            MPI_Send(&pilaNueva->nodos[0], pilaNueva->tope, MPI_INT, solicitante, NODOS, comunicadorCarga);
+            delete pilaNueva;
             if (rank < solicitante) {
               color = NEGRO;
             }
