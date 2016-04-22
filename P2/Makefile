@@ -13,7 +13,7 @@ bbpar.o: bbpar.cc
 	mpicxx -O3 -c bbpar.cc
 
 libbb.o: libbb.cc libbb.h
-	mpicxx -O3 -c  libbb.cc
+	mpicxx -O3 -c -Wno-unused-result libbb.cc
 
 clean:
 	/bin/rm -f *.o bbseq bbpar
