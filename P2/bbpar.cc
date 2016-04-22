@@ -31,39 +31,46 @@ int main (int argc, char **argv) {
     break;
   }
 
-  int** tsp0 = reservarMatrizCuadrada(NCIUDADES);
-  tNodo   nodo,                   // nodo a explorar
-          nodo_izq,               // hijo izquierdo
-          nodo_dch,               // hijo derecho
-          solucion;               // mejor solucion
-  bool    fin = false,            // condicion de fin
-          nueva_U;                // hay nuevo valor de c.s.
-  int     U;                      // valor de c.s.
-  int     iteraciones = 0;
-  tPila   pila;                   // pila de nodos a explorar
+  int**   tsp0 = reservarMatrizCuadrada(NCIUDADES);
+  tNodo   nodo,                     // nodo a explorar
+          nodo_izq,                 // hijo izquierdo
+          nodo_dch,                 // hijo derecho
+          solucion;                 // mejor solucion
+  bool    fin = false,              // condicion de fin
+          nueva_U;                  // hay nuevo valor de c.s.
+  int     U,                        // valor de c.s.
+          iteraciones = 0;
+  tPila   pila;                     // pila de nodos a explorar
 
-  U = INFINITO;                   // inicializa cota superior
+  extern bool     token_presente;   // poseedor del token
+  extern int      anterior,         // proceso anterior
+                  siguiente;        // proceso siguiente
+  extern MPI_Comm comunicadorCarga,	// Para la distribución de la carga
+                  comunicadorCota;	// Para la difusión de una nueva cota superior detectada
 
-  extern MPI_Comm comunicadorCarga;	// Para la distribución de la carga
-  extern MPI_Comm comunicadorCota;	// Para la difusión de una nueva cota superior detectada
+  U = INFINITO;                         // inicializa cota superior
+  anterior = (rank - 1 + size) % size;  // inicializa proceso anterior
+  siguiente = (rank + 1) % size;        // inicializa proceso siguiente
 
   MPI_Comm_dup(MPI_COMM_WORLD, &comunicadorCarga);
   MPI_Comm_dup(MPI_COMM_WORLD, &comunicadorCota);
 
   if (rank == 0) {
+    token_presente = true;
     LeerMatriz(argv[2], tsp0);
     MPI_Bcast(&tsp0[0][0], NCIUDADES * NCIUDADES, MPI_INT, 0, MPI_COMM_WORLD);
     InicNodo(&nodo);                // inicializa estructura nodo
   } else {
+    token_presente = false;
     MPI_Bcast(&tsp0[0][0], NCIUDADES * NCIUDADES, MPI_INT, 0, MPI_COMM_WORLD);
-    Equilibrado_Carga(&pila, &fin);
+    Equilibrado_Carga(&pila, &fin, &solucion);
     if (!fin)
       pila.pop(nodo);
   }
 
   double t = MPI_Wtime();
   while (!fin) { // ciclo de Branch&Bound
-    cout << "[" << rank << "]: " << "it " << iteraciones << endl;
+    //cout << "[" << rank << "]: " << "it " << iteraciones << endl;
     Ramifica(&nodo, &nodo_izq, &nodo_dch, tsp0);
     nueva_U = false;
 
@@ -95,7 +102,7 @@ int main (int argc, char **argv) {
     if (nueva_U)
       pila.acotar(U);
 
-    Equilibrado_Carga(&pila, &fin);
+    Equilibrado_Carga(&pila, &fin, &solucion);
     if (!fin)
       pila.pop(nodo);
 

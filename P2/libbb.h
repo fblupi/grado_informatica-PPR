@@ -34,19 +34,19 @@ class tNodo {
             datos = new int[2 * NCIUDADES];
         }
 
-        int ci(){
+        int ci() {
             return datos[0];
         }
 
-        int orig_excl(){
+        int orig_excl() {
             return datos[1];
         }
 
-        int* incl(){
+        int* incl() {
             return &datos[2];
         }
 
-        int* dest_excl(){
+        int* dest_excl() {
             return &datos[NCIUDADES + 2];
         }
         ~tNodo() {
@@ -63,20 +63,20 @@ class tPila{
         int tope;
         int* nodos;
 
-        tPila(){
+        tPila() {
             tope = 0;
             nodos = new int[2 * NCIUDADES * MAXPILA];
         }
 
-        inline bool llena() const{
+        inline bool llena() const {
             return (tope == 2 * NCIUDADES * MAXPILA);
         }
 
-        inline bool vacia() const{
+        inline bool vacia() const {
             return (tope == 0);
         }
 
-        inline int tamanio() const{
+        inline int tamanio() const {
             return (tope / (2 * NCIUDADES));
         }
 
@@ -88,7 +88,7 @@ class tPila{
 
         void acotar(int U);
 
-        ~tPila(){
+        ~tPila() {
             delete [] nodos;
         }
 };
@@ -98,7 +98,7 @@ class tPila{
 /* *** Cabeceras de funciones para el algoritmo de Branch-and-Bound *** */
 /* ******************************************************************** */
 
-void Equilibrado_Carga(tPila *pila, bool *fin);
+void Equilibrado_Carga(tPila *pila, bool *fin, tNodo *sol);
 
 void Difusion_Cota_Superior(int *U);
 
