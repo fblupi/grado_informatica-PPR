@@ -10,7 +10,7 @@ using namespace MPI;
 extern unsigned int NCIUDADES;
 
 // Tipos de mensajes que se envían los procesos
-const int  PETICION = 0;
+const int PETICION = 0;
 const int NODOS = 1;
 const int TOKEN = 2;
 const int FIN = 3;
