@@ -23,13 +23,12 @@ const int PASIVO = 1;
 const int BLANCO = 0;
 const int NEGRO = 1;
 
-
 // Comunicadores que usara cada proceso
-Intracomm comunicadorCarga;	// Para la distribución de la carga
-Intracomm comunicadorCota;	// Para la difusión de una nueva cota superior detectada
+MPI_Comm comunicadorCarga;	// Para la distribución de la carga
+MPI_Comm comunicadorCota;	// Para la difusión de una nueva cota superior detectada
 
 // Variables que indican el estado de cada proceso
-extern int rank;	 // Identificador del proceso dentro de cada comunicador (coincide en ambos)
+extern int rank;	// Identificador del proceso dentro de cada comunicador (coincide en ambos)
 extern int size;	// Número de procesos que están resolviendo el problema
 int estado;	// Estado del proceso {ACTIVO, PASIVO}
 int color;	// Color del proceso {BLANCO,NEGRO}
@@ -40,6 +39,102 @@ int siguiente;	// Identificador del siguiente proceso
 bool difundir_cs_local;	// Indica si el proceso puede difundir su cota inferior local
 bool pendiente_retorno_cs;	// Indica si el proceso está esperando a recibir la cota inferior de otro proceso
 
+void Equilibrado_Carga(tPila *pila, bool *fin) {
+  //cout << "[" << rank << "]: " << "Equilibrando carga" << endl;
+  int solicitante, flag, tamanio;
+  MPI_Status estado;
+  tNodo nodo;
+  tPila pilaNueva;
+  if (pila->vacia()) { // el proceso no tiene trabajo: pide a otros procesos
+    //cout << "[" << rank << "]: " << "Pila vacía" << endl;
+    /* Enviar petición de trabajo al proceso (rank + 1) % size */
+    //cout << "[" << rank << "]: " << "Voy a enviar petición de nodo" << endl;
+    MPI_Send(&rank, 1, MPI_INT, (rank + 1) % size, PETICION, comunicadorCarga);
+    //cout << "[" << rank << "]: " << "Petición de nodo enviada" << endl;
+    while (pila->vacia() && !*fin) {
+      /* Esperar mensaje de otro proceso */
+      //cout << "[" << rank << "]: " << "Esperando mensaje" << endl;
+      MPI_Probe(MPI_ANY_SOURCE, MPI_ANY_TAG, comunicadorCarga, &estado);
+      //cout << "[" << rank << "]: " << "Mensaje recibido" << endl;
+      switch (estado.MPI_TAG) {
+        case PETICION: // peticion de trabajo
+          //cout << "[" << rank << "]: " << "Recibir mensaje de tipo petición" << endl;
+          /* Recibir mensaje de petición de trabajo */
+          MPI_Recv(&solicitante, 1, MPI_INT, MPI_ANY_SOURCE, PETICION, comunicadorCarga, &estado);
+          if (solicitante == rank) { // peticion devuelta
+            /* Reenviar petición de trabajo al proceso (rank + 1) % size */
+            //cout << "[" << rank << "]: " << "Voy a reenviar petición de nodo" << endl;
+            MPI_Send(&solicitante, 1, MPI_INT, (rank + 1) % size, PETICION, comunicadorCarga);
+            //cout << "[" << rank << "]: " << "Petición de nodo reenviada" << endl;
+            /* Iniciar detección de posible situación de fin */
+            //cout << "[" << rank << "]: " << "Posible fin" << endl;
+          } else { // petición de otro proceso: la retransmite al siguiente
+            /* Pasar petición de trabajo al proceso (rank + 1) % size */
+            //cout << "[" << rank << "]: " << "Voy a pasar petición" << endl;
+            MPI_Send(&solicitante, 1, MPI_INT, (rank + 1) % size, PETICION, comunicadorCarga);
+            //cout << "[" << rank << "]: " << "Petición pasada de nodo " << solicitante << endl;
+          }
+          break;
+        case NODOS: // resultado de una petición de trabajo
+          MPI_Get_count(&estado, MPI_INT, &tamanio);
+          //cout << "[" << rank << "]: " << "Recibir mensaje de tipo nodos" << endl;
+          /* Recibir nodos del proceso donante */
+          MPI_Recv(&pila->nodos[0], tamanio, MPI_INT, MPI_ANY_SOURCE, NODOS, comunicadorCarga, &estado);
+          /* Almacenar nodos recibidos en la pila */
+          pila->tope = tamanio;
+          //cout << "[" << rank << "]: " << "Nodo almacenado" << endl;
+      }
+    }
+  }
+  if (!*fin) { // el proceso tiene nodos para trabajar
+    /* Sondear si hay mensajes pendientes de otros procesos */
+    //cout << "[" << rank << "]: " << "Sondea si hay mensajes pendientes de otros procesos" << endl;
+    MPI_Iprobe(MPI_ANY_SOURCE, MPI_ANY_TAG, comunicadorCarga, &flag, &estado);
+    while (flag) { // atiende peticiones mientras haya mensajes
+      //cout << "[" << rank << "]: " << "Recibe mensaje de petición de trabajo. Tamaño pila: " << pila->tamanio() << endl;
+      /* Recibir mensaje de petición de trabajo */
+      MPI_Recv(&solicitante, 1, MPI_INT, MPI_ANY_SOURCE, PETICION, comunicadorCarga, &estado);
+      if (pila->tamanio() > 1) {
+        /* Enviar nodos al proceso solicitante */
+        pila->divide(pilaNueva);
+        //cout << "[" << rank << "]: " << "Voy a enviar nodo" << endl;
+        MPI_Send(&pilaNueva.nodos[0], pilaNueva.tope, MPI_INT, solicitante, NODOS, comunicadorCarga);
+        //cout << "[" << rank << "]: " << "Nodo enviado" << endl;
+      } else {
+        /* Pasar petición de trabajo al proceso (rank + 1) % size */
+        //cout << "[" << rank << "]: " << "Voy a reenviar petición de nodo" << endl;
+        MPI_Send(&solicitante, 1, MPI_INT, (rank + 1) % size, PETICION, comunicadorCarga);
+        //cout << "[" << rank << "]: " << "Petición de nodo reenviada" << endl;
+      }
+      /* Sondear si hay mensajes pendientes de otros procesos */
+      //cout << "[" << rank << "]: " << "Sondea si hay mensajes pendientes de otros procesos" << endl;
+      MPI_Iprobe(MPI_ANY_SOURCE, MPI_ANY_TAG, comunicadorCarga, &flag, &estado);
+    }
+  }
+}
+
+// void Difusion_Cota_Superior() {
+//   if (difundir_cs_local && !pendiente_retorno_cs) {
+//     /* Enviar valor local de cs al proceos (rank + 1) % size */
+//     pendiente_retorno_cs = true;
+//     difundir_cs_local = false;
+//   }
+//   /* Sondear si hay mensajes de cota superior pendientes */
+//   while (hay_mensajes) {
+//     /* Recibir mensajes con valor de cota superior desde el proceso (rank - 1 + size) % size */
+//     /* Actualizar valor local de cota superior */
+//
+//     if (origen_mensaje == rank && difundir_cs_local) {
+//       /* Enviar valor local de cs al proceso (rank + 1) % size */
+//       pendiente_retorno_cs = true;
+//       difundir_cs_local = false;
+//     } else if (origen_mensaje == rank && !difundir_cs_local)
+//       pendiente_retorno_cs = false;
+//     else // origen mensaje == otro proceso
+//       /* Reenviar mensaje al proceso (rank + 1) % size */
+//     /* Sondear si hay mensajes de cota superior pendientes */
+//   }
+// }
 
 /* ********************************************************************* */
 /* ****************** Funciones para el Branch-Bound  ****************** */

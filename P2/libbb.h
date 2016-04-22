@@ -98,6 +98,10 @@ class tPila{
 /* *** Cabeceras de funciones para el algoritmo de Branch-and-Bound *** */
 /* ******************************************************************** */
 
+void Equilibrado_Carga(tPila *pila, bool *fin);
+
+void Difusion_Cota_Superior();
+
 void LeerMatriz(char archivo[], int** tsp) ;
 
 bool Inconsistente(int** tsp);
