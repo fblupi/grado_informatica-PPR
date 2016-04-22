@@ -38,9 +38,11 @@ int main (int argc, char **argv) {
           solucion;               // mejor solucion
   bool    fin = false,            // condicion de fin
           nueva_U;                // hay nuevo valor de c.s.
-  int     U = INFINITO;           // valor de c.s.
+  int     U;                      // valor de c.s.
   int     iteraciones = 0;
   tPila   pila;                   // pila de nodos a explorar
+
+  U = INFINITO;                   // inicializa cota superior
 
   extern MPI_Comm comunicadorCarga;	// Para la distribución de la carga
   extern MPI_Comm comunicadorCota;	// Para la difusión de una nueva cota superior detectada
@@ -97,7 +99,7 @@ int main (int argc, char **argv) {
       }
     }
 
-    // Difusion_Cota_Superior(&U);
+    Difusion_Cota_Superior(&U);
     if (nueva_U)
       pila.acotar(U);
 

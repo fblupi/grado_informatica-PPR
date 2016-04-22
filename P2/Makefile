@@ -1,4 +1,4 @@
-all : bbseq bbpar
+all : bbpar bbseq
 
 bbseq: bbseq.o libbb.o
 	mpicxx -O3 bbseq.o libbb.o -o bbseq
