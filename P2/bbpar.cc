@@ -111,10 +111,11 @@ int main (int argc, char **argv) {
   t = MPI_Wtime() - t;
 
   if (rank == 0) {
-    cout << "Solución = " << endl;
-    EscribeNodo(&solucion);
+     cout << "Solución = " << endl;
+     EscribeNodo(&solucion);
+     cout << "Tiempo gastado= " << t << endl;
   }
-  cout << "[" << rank << "]: " << iteraciones << endl;
+  cout << "[" << rank << "] Numbero de iteraciones: " << iteraciones << endl;
 
   MPI_Finalize();
   liberarMatriz(tsp0);
