@@ -100,7 +100,7 @@ class tPila{
 
 void Equilibrado_Carga(tPila *pila, bool *fin, tNodo *sol);
 
-void Difusion_Cota_Superior(int *U);
+void Difusion_Cota_Superior(int *U, bool *nueva_U);
 
 void LeerMatriz(char archivo[], int** tsp) ;
 

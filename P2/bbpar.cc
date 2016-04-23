@@ -39,7 +39,8 @@ int main (int argc, char **argv) {
   bool    fin = false,              // condicion de fin
           nueva_U;                  // hay nuevo valor de c.s.
   int     U,                        // valor de c.s.
-          iteraciones = 0;
+          iteraciones = 0,
+          acotaciones = 0;
   tPila   *pila = new tPila();      // pila de nodos a explorar
 
   extern bool     token_presente;   // poseedor del token
@@ -97,13 +98,16 @@ int main (int argc, char **argv) {
       }
     }
 
-    Difusion_Cota_Superior(&U);
-    if (nueva_U)
+    //Difusion_Cota_Superior(&U, &nueva_U);
+    if (nueva_U) {
+      acotaciones++;
       pila->acotar(U);
+    }
 
     Equilibrado_Carga(pila, &fin, solucion);
-    if (!fin)
+    if (!fin) {
       pila->pop(*nodo);
+    }
 
     iteraciones++;
   }
@@ -115,6 +119,7 @@ int main (int argc, char **argv) {
      cout << "Tiempo gastado= " << t << endl;
   }
   cout << "[" << rank << "] Numero de iteraciones: " << iteraciones << endl;
+  cout << "[" << rank << "] Numero de acotaciones: " << acotaciones << endl;
 
   liberarMatriz(tsp0);
   delete pila;

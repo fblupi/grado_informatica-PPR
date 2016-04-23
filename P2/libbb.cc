@@ -168,7 +168,7 @@ void Equilibrado_Carga(tPila *pila, bool *fin, tNodo *solucion) {
 
 /* ********************************************************************* */
 
-void Difusion_Cota_Superior(int *U) {
+void Difusion_Cota_Superior(int *U, bool *nueva_U) {
   if (difundir_cs_local && !pendiente_retorno_cs) {
     /* Enviar valor local de cs al proceos (rank + 1) % size */
     MPI_Send(&U, 1, MPI_INT, siguiente, 0, comunicadorCota);
@@ -183,6 +183,7 @@ void Difusion_Cota_Superior(int *U) {
     /* Actualizar valor local de cota superior */
     if (cs < *U) {
       *U = cs;
+      *nueva_U = true;
     }
     if (status.MPI_SOURCE == rank && difundir_cs_local) {
       /* Enviar valor local de cs al proceso (rank + 1) % size */
