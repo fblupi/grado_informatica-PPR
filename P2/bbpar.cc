@@ -98,7 +98,7 @@ int main (int argc, char **argv) {
       }
     }
 
-    //Difusion_Cota_Superior(&U, &nueva_U);
+    Difusion_Cota_Superior(&U, &nueva_U);
     if (nueva_U) {
       acotaciones++;
       pila->acotar(U);

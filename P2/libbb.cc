@@ -36,8 +36,8 @@ int color_token; 	// Color del token la última vez que estaba en poder del proc
 bool token_presente;  // Indica si el proceso posee el token
 int anterior;	// Identificador del anterior proceso
 int siguiente;	// Identificador del siguiente proceso
-bool difundir_cs_local;	// Indica si el proceso puede difundir su cota inferior local
-bool pendiente_retorno_cs;	// Indica si el proceso está esperando a recibir la cota inferior de otro proceso
+bool difundir_cs_local = false;	// Indica si el proceso puede difundir su cota inferior local
+bool pendiente_retorno_cs = false;	// Indica si el proceso está esperando a recibir la cota inferior de otro proceso
 
 // Variables auxiliares
 MPI_Status status;  // Datos del mensaje
@@ -83,7 +83,7 @@ void Equilibrado_Carga(tPila *pila, bool *fin, tNodo *solucion) {
         case NODOS: // resultado de una petición de trabajo
           MPI_Get_count(&status, MPI_INT, &tamanio);
           /* Recibir nodos del proceso donante */
-          MPI_Recv(&pila->nodos[0], tamanio, MPI_INT, MPI_ANY_SOURCE, NODOS, comunicadorCarga, &status);
+          MPI_Recv(&pila->nodos[0], tamanio, MPI_INT, status.MPI_SOURCE, NODOS, comunicadorCarga, &status);
           /* Almacenar nodos recibidos en la pila */
           pila->tope = tamanio;
           estado = ACTIVO;
@@ -169,9 +169,10 @@ void Equilibrado_Carga(tPila *pila, bool *fin, tNodo *solucion) {
 /* ********************************************************************* */
 
 void Difusion_Cota_Superior(int *U, bool *nueva_U) {
+  difundir_cs_local = *nueva_U;
   if (difundir_cs_local && !pendiente_retorno_cs) {
     /* Enviar valor local de cs al proceos (rank + 1) % size */
-    MPI_Send(&U, 1, MPI_INT, siguiente, 0, comunicadorCota);
+    MPI_Send(U, 1, MPI_INT, siguiente, rank, comunicadorCota);
     pendiente_retorno_cs = true;
     difundir_cs_local = false;
   }
@@ -179,22 +180,24 @@ void Difusion_Cota_Superior(int *U, bool *nueva_U) {
   MPI_Iprobe(anterior, MPI_ANY_TAG, comunicadorCota, &hay_mensajes, &status);
   while (hay_mensajes) {
     /* Recibir mensajes con valor de cota superior desde el proceso (rank - 1 + size) % size */
-    MPI_Recv(&cs, 1, MPI_INT, anterior, 0, comunicadorCota, &status);
+    MPI_Recv(&cs, 1, MPI_INT, anterior, status.MPI_TAG, comunicadorCota, &status);
     /* Actualizar valor local de cota superior */
     if (cs < *U) {
       *U = cs;
       *nueva_U = true;
     }
-    if (status.MPI_SOURCE == rank && difundir_cs_local) {
-      /* Enviar valor local de cs al proceso (rank + 1) % size */
-      MPI_Send(&U, 1, MPI_INT, siguiente, 0, comunicadorCota);
-      pendiente_retorno_cs = true;
-      difundir_cs_local = false;
-    } else if (status.MPI_SOURCE == rank && !difundir_cs_local) {
-      pendiente_retorno_cs = false;
+    if (status.MPI_TAG == rank) { // origen mensaje == propio proceso
+      if (difundir_cs_local) {
+        /* Enviar valor local de cs al proceso (rank + 1) % size */
+        MPI_Send(U, 1, MPI_INT, siguiente, rank, comunicadorCota);
+        pendiente_retorno_cs = true;
+        difundir_cs_local = false;
+      } else {
+        pendiente_retorno_cs = false;
+      }
     } else { // origen mensaje == otro proceso
       /* Reenviar mensaje al proceso (rank + 1) % size */
-      MPI_Send(&U, 1, MPI_INT, siguiente, 0, comunicadorCota);
+      MPI_Send(U, 1, MPI_INT, siguiente, status.MPI_TAG, comunicadorCota);
     }
     /* Sondear si hay mensajes de cota superior pendientes */
     MPI_Iprobe(anterior, MPI_ANY_TAG, comunicadorCota, &hay_mensajes, &status);
