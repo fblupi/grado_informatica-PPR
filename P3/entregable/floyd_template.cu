@@ -10,9 +10,10 @@
 using namespace std;
 
 //******************************************************************************
-// Kernel to update the Matrix at k-th iteration
+// Kernels to update the Matrix at k-th iteration
+
 __global__ void floyd_kernel1D(int * M, const int nverts, const int k) {
-  int i = blockIdx.y * blockDim.y + threadIdx.y,
+  int i = blockIdx.y,
       j = blockIdx.x * blockDim.x + threadIdx.x;
   if (i < nverts && j < nverts) {
     if (i != j && i != k && j != k) {
@@ -36,6 +37,7 @@ __global__ void floyd_kernel2D(int * M, const int nverts, const int k) {
 
 //******************************************************************************
 // Main
+
 int main(int argc, char *argv[]) {
   if (argc != 2) {
     cerr << "Sintaxis: " << argv[0] << " <archivo de grafo>" << endl;
@@ -65,7 +67,7 @@ int main(int argc, char *argv[]) {
   const int nverts = G.vertices;                              // Vertices
   const int niters = nverts;                                  // Iteraciones
   const int nverts2 = nverts * nverts;                        // Elementos
-  
+
   const dim3 blocksize1D (BLOCK_SIZE_1D, 1);                  // Tama Bloque 1D
   const dim3 blocksize2D (BLOCK_SIZE_2D, BLOCK_SIZE_2D);      // Tama Bloque 2D
   const dim3 nblocks1D (ceil((float) nverts / blocksize1D.x), // Bloques 1D
@@ -79,16 +81,19 @@ int main(int argc, char *argv[]) {
   int * d_In_M_1D = NULL;               // Matriz en DEVICE para 1D
   int * d_In_M_2D = NULL;               // Matriz en DEVICE para 2D
 
-  //****************************************************************************
+  int i, j, k;
+  double T, Tgpu1D, Tgpu2D, Tcpu;
 
+  //****************************************************************************
   // GPU phase (1D)
+
   // Reservar espacio en memoria para la matriz en DEVICE
   err = cudaMalloc((void **) &d_In_M_1D, size);
   if (err != cudaSuccess) {
     cout << "ERROR: Bad Allocation in Device Memory" << endl;
   }
 
-  double  T = clock();
+  T = clock();
 
   // Copiar los datos de la matriz en HOST en la matriz en DEVICE
   err = cudaMemcpy(d_In_M_1D, G.Get_Matrix(), size, cudaMemcpyHostToDevice);
@@ -96,7 +101,7 @@ int main(int argc, char *argv[]) {
     cout << "ERROR: COPY MATRIX TO DEVICE" << endl;
   }
 
-  for (int k = 0; k < niters; k++) {
+  for (k = 0; k < niters; k++) {
     // Kernel Launch
     floyd_kernel1D <<< nblocks1D, blocksize1D >>> (d_In_M_1D, nverts, k);
     err = cudaGetLastError();
@@ -109,13 +114,13 @@ int main(int argc, char *argv[]) {
   // Copiar los datos de la matriz en DEVICE en la matriz en HOST
   cudaMemcpy(c_out_M_1D, d_In_M_1D, size, cudaMemcpyDeviceToHost);
 
-  double Tgpu1D = clock();
+  Tgpu1D = clock();
   Tgpu1D = (Tgpu1D - T) / CLOCKS_PER_SEC;
-  cout << "Tiempo gastado GPU (1D) = " << Tgpu1D << endl << endl;
+  cout << "Tiempo gastado GPU (1D) = " << Tgpu1D << endl;
 
   //****************************************************************************
-
   // GPU phase (2D)
+
   // Reservar espacio en memoria para la matriz en DEVICE
   err = cudaMalloc((void **) &d_In_M_2D, size);
   if (err != cudaSuccess) {
@@ -130,7 +135,7 @@ int main(int argc, char *argv[]) {
     cout << "ERROR: COPY MATRIX TO DEVICE" << endl;
   }
 
-  for (int k = 0; k < niters; k++) {
+  for (k = 0; k < niters; k++) {
     // Kernel Launch
     floyd_kernel2D <<< nblocks2D, blocksize2D >>> (d_In_M_2D, nverts, k);
     err = cudaGetLastError();
@@ -143,13 +148,13 @@ int main(int argc, char *argv[]) {
   // Copiar los datos de la matriz en DEVICE en la matriz en HOST
   cudaMemcpy(c_out_M_2D, d_In_M_2D, size, cudaMemcpyDeviceToHost);
 
-  double Tgpu2D = clock();
+  Tgpu2D = clock();
   Tgpu2D = (Tgpu2D - T) / CLOCKS_PER_SEC;
-  cout << "Tiempo gastado GPU (2D) = " << Tgpu2D << endl << endl;
+  cout << "Tiempo gastado GPU (2D) = " << Tgpu2D << endl;
 
   //****************************************************************************
-
   // CPU phase
+
   T = clock();
   // Bucle ppal del algoritmo
   for (int k = 0; k < niters; k++)
@@ -160,20 +165,20 @@ int main(int argc, char *argv[]) {
           G.inserta_arista(i, j, vikj);
         }
 
-  double Tcpu = clock();
+  Tcpu = clock();
   Tcpu = (Tcpu - T) / CLOCKS_PER_SEC;
   //cout << endl << "El Grafo con las distancias de los caminos más cortos es:"
   //     << endl << endl;
   //G.imprime();
-  cout << "Tiempo gastado CPU = " << Tcpu << endl << endl;
+  cout << "Tiempo gastado CPU = " << Tcpu << endl;
   cout << "Ganancia (1D) = " << Tcpu / Tgpu1D << endl;
   cout << "Ganancia (2D) = " << Tcpu / Tgpu2D << endl;
 
   //****************************************************************************
 
   // Comprobar que los resultados en CPU y GPU son los mismos
-  for (int i = 0; i < nverts; i++)
-    for (int j = 0; j < nverts; j++) {
+  for (i = 0; i < nverts; i++)
+    for (j = 0; j < nverts; j++) {
       if (abs(c_out_M_1D[i * nverts + j] - G.arista(i, j)) > 0)
         cout << "Error 1D (" << i << "," << j << ")   "
              << c_out_M_1D[i * nverts + j] << "..." << G.arista(i, j) << endl;
