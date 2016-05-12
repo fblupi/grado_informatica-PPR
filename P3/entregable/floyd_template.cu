@@ -4,6 +4,9 @@
 #include <time.h>
 #include "Graph.h"
 
+#define BLOCK_SIZE_1D 256
+#define BLOCK_SIZE_2D 8
+
 using namespace std;
 
 //******************************************************************************
@@ -59,14 +62,16 @@ int main(int argc, char *argv[]) {
   //cout << "El Grafo de entrada es:" << endl;
   //G.imprime();
 
-  const int blocksize = 256;                                // Tamano Bloque
-  const dim3 gridsize (8, 8);                               // Tamano Grid
-  const int nverts = G.vertices;                            // Vertices
-  const int niters = nverts;                                // Iteraciones
-  const int nverts2 = nverts * nverts;                      // Elementos
-  const int nblocks1D = ceil((float) nverts / blocksize);   // Bloques 1D
-  const dim3 nblocks2D (ceil((float) nverts / gridsize.x),  // Bloques 2D
-                        ceil((float) nverts / gridsize.y));
+  const int nverts = G.vertices;                              // Vertices
+  const int niters = nverts;                                  // Iteraciones
+  const int nverts2 = nverts * nverts;                        // Elementos
+  
+  const dim3 blocksize1D (BLOCK_SIZE_1D, 1);                  // Tama Bloque 1D
+  const dim3 blocksize2D (BLOCK_SIZE_2D, BLOCK_SIZE_2D);      // Tama Bloque 2D
+  const dim3 nblocks1D (ceil((float) nverts / blocksize1D.x), // Bloques 1D
+                        ceil((float) nverts / blocksize1D.y));
+  const dim3 nblocks2D (ceil((float) nverts / blocksize2D.x), // Bloques 2D
+                        ceil((float) nverts / blocksize2D.y));
 
   int * c_out_M_1D = new int[nverts2];  // Matriz en el HOST 1D
   int * c_out_M_2D = new int[nverts2];  // Matriz en el HOST 2D
@@ -93,7 +98,7 @@ int main(int argc, char *argv[]) {
 
   for (int k = 0; k < niters; k++) {
     // Kernel Launch
-    floyd_kernel1D <<< nblocks1D, blocksize >>> (d_In_M_1D, nverts, k);
+    floyd_kernel1D <<< nblocks1D, blocksize1D >>> (d_In_M_1D, nverts, k);
     err = cudaGetLastError();
     if (err != cudaSuccess) {
       fprintf(stderr, "Failed to launch kernel!\n");
@@ -127,7 +132,7 @@ int main(int argc, char *argv[]) {
 
   for (int k = 0; k < niters; k++) {
     // Kernel Launch
-    floyd_kernel2D <<< nblocks2D, gridsize >>> (d_In_M_2D, nverts, k);
+    floyd_kernel2D <<< nblocks2D, blocksize2D >>> (d_In_M_2D, nverts, k);
     err = cudaGetLastError();
     if (err != cudaSuccess) {
       fprintf(stderr, "Failed to launch kernel!\n");
