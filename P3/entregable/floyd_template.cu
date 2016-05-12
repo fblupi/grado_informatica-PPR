@@ -10,12 +10,13 @@ using namespace std;
 
 //**************************************************************************
 // Kernel to update the Matrix at k-th iteration
-__global__ void floyd_kernel(int * M, const int nverts, const int k) {
-//*******************************************************************
-
-
-
-//*******************************************************************
+__global__ void floyd_kernel1D(int * M, const int nverts, const int k) {
+  int i = blockIdx.y * blockDim.y + threadIdx.y,
+      j = blockIdx.x * blockDim.x + threadIdx.x;
+  if (i < nverts && j < nverts && i != j && i != k && j != k) {
+    int ij = i * nverts + j, ik = i * nverts + k, kj = k * nverts + j;
+    M[ij] = min(M[ik] + M[kj], M[ij]);
+  }
 }
 
 int main(int argc, char *argv[]) {
@@ -32,68 +33,62 @@ int main(int argc, char *argv[]) {
   if (err != cudaSuccess) {
     cout << "ERRORRR" << endl;
   }
-
   cudaGetDeviceProperties(&props, devID);
   printf("Device %d: \"%s\" with Compute %d.%d capability\n",
         devID, props.name, props.major, props.minor);
 
+  //****************************************************************************
+
   Graph G;
   G.lee(argv[1]);		// Read the Graph
-
   //cout << "El Grafo de entrada es:" << endl;
   //G.imprime();
 
-  const int nverts = G.vertices;
-  const int niters = nverts;
-
-  const int nverts2 = nverts * nverts;
-
-  int * c_Out_M = new int[nverts2];
-
-  int size = nverts2 * sizeof(int);
-
-  int * d_In_M = NULL;
+  const int nverts = G.vertices;        // Vertices
+  const int niters = nverts;            // Iteraciones
+  const int nverts2 = nverts * nverts;  // Elementos de la matriz
+  const int nblocks = nverts / blocksize + (nverts % blocksize == 0 ? 0 : 1);
+  int * c_Out_M = new int[nverts2];     // Matriz en el HOST
+  int size = nverts2 * sizeof(int);     // Tama en bytes de la matriz de salida
+  int * d_In_M = NULL;                  // Matriz en DEVICE
 
   // GPU phase
+  // Reservar espacio en memoria para la matriz en DEVICE
   err = cudaMalloc((void **) &d_In_M, size);
   if (err != cudaSuccess) {
     cout << "ERROR: Bad Allocation in Device Memory" << endl;
   }
 
-  double  t1 = clock();
+  double  T = clock();
 
-  err = cudaMemcpy(d_In_M,G.Get_Matrix(), size, cudaMemcpyHostToDevice);
+  // Copiar los datos de la matriz en HOST en la matriz en DEVICE
+  err = cudaMemcpy(d_In_M, G.Get_Matrix(), size, cudaMemcpyHostToDevice);
   if (err != cudaSuccess) {
     cout << "ERROR: COPY MATRIX TO DEVICE" << endl;
   }
 
   for (int k = 0; k < niters; k++) {
-
-  //*******************************************************************
-  // Kernel Launch
-
-
-
-  //*******************************************************************
-
+    // Kernel Launch
+    floyd_kernel1D <<< nblocks, blocksize >>> (d_In_M, nverts, k);
     err = cudaGetLastError();
-
     if (err != cudaSuccess) {
       fprintf(stderr, "Failed to launch kernel!\n");
       exit(EXIT_FAILURE);
     }
   }
 
+  // Copiar los datos de la matriz en DEVICE en la matriz en HOST
   cudaMemcpy(c_Out_M, d_In_M, size, cudaMemcpyDeviceToHost);
 
   double Tgpu = clock();
-  Tgpu = (Tgpu - t1) / CLOCKS_PER_SEC;
+  Tgpu = (Tgpu - T) / CLOCKS_PER_SEC;
   cout << "Tiempo gastado GPU = " << Tgpu << endl << endl;
 
-  // CPU phase
-  t1 = clock();
-  // BUCLE PPAL DEL ALGORITMO
+  //****************************************************************************
 
+  // CPU phase
+  T = clock();
+  // Bucle ppal del algoritmo
   for (int k = 0; k < niters; k++)
     for (int i = 0; i < nverts; i++)
       for (int j = 0; j < nverts; j++)
@@ -102,14 +97,17 @@ int main(int argc, char *argv[]) {
           G.inserta_arista(i, j, vikj);
         }
 
-  double t2 = clock();
-  t2 = (t2 - t1) / CLOCKS_PER_SEC;
+  double Tcpu = clock();
+  Tcpu = (Tcpu - T) / CLOCKS_PER_SEC;
   //cout << endl << "El Grafo con las distancias de los caminos más cortos es:"
   //     << endl << endl;
   //G.imprime();
-  cout << "Tiempo gastado CPU = " << t2 << endl << endl;
-  cout << "Ganancia = " << t2 / Tgpu << endl;
+  cout << "Tiempo gastado CPU = " << Tcpu << endl << endl;
+  cout << "Ganancia = " << Tcpu / Tgpu << endl;
 
+  //****************************************************************************
+
+  // Comprobar que los resultados en CPU y GPU son los mismos
   for (int i = 0; i < nverts; i++)
     for (int j = 0; j < nverts; j++)
        if (abs(c_Out_M[i * nverts + j] - G.arista(i, j)) > 0)
