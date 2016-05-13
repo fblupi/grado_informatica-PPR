@@ -5,7 +5,7 @@
 #include "Graph.h"
 
 #define BLOCK_SIZE_1D 256
-#define BLOCK_SIZE_2D 8
+#define BLOCK_SIZE_2D 16
 
 using namespace std;
 
