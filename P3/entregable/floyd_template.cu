@@ -13,14 +13,12 @@ using namespace std;
 // Kernels to update the Matrix at k-th iteration
 
 __global__ void floyd_kernel1D(int * M, const int nverts, const int k) {
-  int ii = blockIdx.x * blockDim.x + threadIdx.x,
-      i = ii / nverts,
-      j = ii - i * nverts;
+  int ij = blockIdx.x * blockDim.x + threadIdx.x,
+      i = ij / nverts,
+      j = ij - i * nverts;
   if (i < nverts && j < nverts) {
     if (i != j && i != k && j != k) {
-      int ik = i * nverts + k,
-          kj = k * nverts + j;
-      M[ii] = min(M[ik] + M[kj], M[ii]);
+      M[ij] = min(M[i * nverts + k]  + M[k * nverts + j], M[ij]);
     }
   }
 }
@@ -28,8 +26,8 @@ __global__ void floyd_kernel1D(int * M, const int nverts, const int k) {
 __global__ void floyd_kernel2D(int * M, const int nverts, const int k) {
   int ii = blockIdx.y * blockDim.y + threadIdx.y,
       jj = blockIdx.x * blockDim.x + threadIdx.x,
-      i = 1,
-      j = 2;
+      i = ii / nverts,
+      j = jj / nverts;
   if (i < nverts && j < nverts) {
     if (i != j && i != k && j != k) {
       int ij = i * nverts + j,
@@ -74,10 +72,11 @@ int main(int argc, char *argv[]) {
   const int niters = nverts;                                  // Iteraciones
   const int nverts2 = nverts * nverts;                        // Elementos
 
-  const dim3 blocksize1D (BLOCK_SIZE_1D);                  // Tama Bloque 1D
+  const dim3 blocksize1D (BLOCK_SIZE_1D);                     // Tama Bloque 1D
   const dim3 blocksize2D (BLOCK_SIZE_2D, BLOCK_SIZE_2D);      // Tama Bloque 2D
   const dim3 nblocks1D (ceil((float) (nverts * nverts) / blocksize1D.x)); // Bloques 1D
-  const dim3 nblocks2D (ceil((float) (nverts * nverts) / blocksize2D.x), ceil((float) (nverts * nverts) / blocksize2D.y)); // Bloques 2D
+  const dim3 nblocks2D (ceil((float) nverts / blocksize2D.x), // Bloques 2D
+                        ceil((float) nverts / blocksize2D.y));
 
   int * c_out_M_1D = new int[nverts2];  // Matriz en el HOST 1D
   int * c_out_M_2D = new int[nverts2];  // Matriz en el HOST 2D
@@ -141,7 +140,7 @@ int main(int argc, char *argv[]) {
 
   for (k = 0; k < niters; k++) {
     // Kernel Launch
-    //floyd_kernel2D <<< nblocks2D, blocksize2D >>> (d_In_M_2D, nverts, k);
+    floyd_kernel2D <<< nblocks2D, blocksize2D >>> (d_In_M_2D, nverts, k);
     err = cudaGetLastError();
     if (err != cudaSuccess) {
       fprintf(stderr, "Failed to launch kernel!\n");
@@ -186,9 +185,9 @@ int main(int argc, char *argv[]) {
       if (abs(c_out_M_1D[i * nverts + j] - G.arista(i, j)) > 0)
         cout << "Error 1D (" << i << "," << j << ")   "
              << c_out_M_1D[i * nverts + j] << "..." << G.arista(i, j) << endl;
-      //if (abs(c_out_M_2D[i * nverts + j] - G.arista(i, j)) > 0)
-      //  cout << "Error 2D (" << i << "," << j << ")   "
-      //       << c_out_M_2D[i * nverts + j] << "..." << G.arista(i, j) << endl;
+      if (abs(c_out_M_2D[i * nverts + j] - G.arista(i, j)) > 0)
+        cout << "Error 2D (" << i << "," << j << ")   "
+             << c_out_M_2D[i * nverts + j] << "..." << G.arista(i, j) << endl;
     }
 
   // Liberar memoria
