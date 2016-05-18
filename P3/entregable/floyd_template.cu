@@ -4,14 +4,17 @@
 #include <time.h>
 #include "Graph.h"
 
+#define TIEMPOS // Comentar para obtener resultados de la CPU y comparar con estos los de la GPU
+
 #define BLOCK_SIZE_1D 256
 #define BLOCK_SIZE_2D 16
 
 using namespace std;
 
-//******************************************************************************
+//**************************************************************************************************
 // Kernels to update the Matrix at k-th iteration
 
+// Kernel 1D
 __global__ void floyd_kernel1D(int * M, const int nverts, const int k) {
   int ij = blockIdx.x * blockDim.x + threadIdx.x,
       i = ij / nverts,
@@ -23,23 +26,22 @@ __global__ void floyd_kernel1D(int * M, const int nverts, const int k) {
   }
 }
 
+// Kernel 2D
 __global__ void floyd_kernel2D(int * M, const int nverts, const int k) {
   int ii = blockIdx.y * blockDim.y + threadIdx.y,
       jj = blockIdx.x * blockDim.x + threadIdx.x,
-      i = ii / nverts,
-      j = jj / nverts;
+      ij = ii * nverts + jj,
+      i = ij / nverts,
+      j = ij - i * nverts;
   if (i < nverts && j < nverts) {
     if (i != j && i != k && j != k) {
-      int ij = i * nverts + j,
-          ik = i * nverts + k,
-          kj = k * nverts + j;
-      M[ij] = min(M[ik] + M[kj], M[ij]);
+      M[ij] = min(M[i * nverts + k] + M[k * nverts + j], M[ij]);
     }
   }
 }
 
 
-//******************************************************************************
+//**************************************************************************************************
 // Main
 
 int main(int argc, char *argv[]) {
@@ -61,21 +63,21 @@ int main(int argc, char *argv[]) {
   printf("Device %d: \"%s\" with Compute %d.%d capability\n",
         devID, props.name, props.major, props.minor);
 
-  //****************************************************************************
+//**************************************************************************************************
 
   Graph G;
   G.lee(argv[1]); // Read the Graph
   //cout << "El Grafo de entrada es:" << endl;
   //G.imprime();
 
-  const int nverts = G.vertices;                              // Vertices
-  const int niters = nverts;                                  // Iteraciones
-  const int nverts2 = nverts * nverts;                        // Elementos
+  const int nverts = G.vertices;        // Vertices
+  const int niters = nverts;            // Iteraciones
+  const int nverts2 = nverts * nverts;  // Elementos
 
-  const dim3 blocksize1D (BLOCK_SIZE_1D);                     // Tama Bloque 1D
-  const dim3 blocksize2D (BLOCK_SIZE_2D, BLOCK_SIZE_2D);      // Tama Bloque 2D
-  const dim3 nblocks1D (ceil((float) (nverts * nverts) / blocksize1D.x)); // Bloques 1D
-  const dim3 nblocks2D (ceil((float) nverts / blocksize2D.x), // Bloques 2D
+  const dim3 blocksize1D (BLOCK_SIZE_1D);                                 // Tama Bloque 1D
+  const dim3 blocksize2D (BLOCK_SIZE_2D, BLOCK_SIZE_2D);                  // Tama Bloque 2D
+  const dim3 nblocks1D (ceil((float) (nverts * nverts) / blocksize1D.x)); // Num Bloques 1D
+  const dim3 nblocks2D (ceil((float) nverts / blocksize2D.x),             // Num Bloques 2D
                         ceil((float) nverts / blocksize2D.y));
 
   int * c_out_M_1D = new int[nverts2];  // Matriz en el HOST 1D
@@ -87,7 +89,7 @@ int main(int argc, char *argv[]) {
   int i, j, k;
   double T, Tgpu1D, Tgpu2D, Tcpu;
 
-  //****************************************************************************
+  //************************************************************************************************
   // GPU phase (1D)
 
   // Reservar espacio en memoria para la matriz en DEVICE
@@ -121,7 +123,7 @@ int main(int argc, char *argv[]) {
   Tgpu1D = (Tgpu1D - T) / CLOCKS_PER_SEC;
   cout << "Tiempo gastado GPU (1D) = " << Tgpu1D << endl;
 
-  //****************************************************************************
+  //************************************************************************************************
   // GPU phase (2D)
 
   // Reservar espacio en memoria para la matriz en DEVICE
@@ -155,18 +157,22 @@ int main(int argc, char *argv[]) {
   Tgpu2D = (Tgpu2D - T) / CLOCKS_PER_SEC;
   cout << "Tiempo gastado GPU (2D) = " << Tgpu2D << endl;
 
-  //****************************************************************************
+#ifndef TIEMPOS
+  //************************************************************************************************
   // CPU phase
 
   T = clock();
   // Bucle ppal del algoritmo
-  for (int k = 0; k < niters; k++)
-    for (int i = 0; i < nverts; i++)
-      for (int j = 0; j < nverts; j++)
+  for (int k = 0; k < niters; k++) {
+    for (int i = 0; i < nverts; i++) {
+      for (int j = 0; j < nverts; j++) {
         if (i != j && i != k && j != k) {
           int vikj = min(G.arista(i, k) + G.arista(k, j), G.arista(i, j));
           G.inserta_arista(i, j, vikj);
         }
+      }
+    }
+  }
 
   Tcpu = clock();
   Tcpu = (Tcpu - T) / CLOCKS_PER_SEC;
@@ -177,18 +183,23 @@ int main(int argc, char *argv[]) {
   cout << "Ganancia (1D) = " << Tcpu / Tgpu1D << endl;
   cout << "Ganancia (2D) = " << Tcpu / Tgpu2D << endl;
 
-  //****************************************************************************
-
+  //************************************************************************************************
   // Comprobar que los resultados en CPU y GPU son los mismos
-  for (i = 0; i < nverts; i++)
+
+  for (i = 0; i < nverts; i++) {
     for (j = 0; j < nverts; j++) {
-      if (abs(c_out_M_1D[i * nverts + j] - G.arista(i, j)) > 0)
-        cout << "Error 1D (" << i << "," << j << ")   "
-             << c_out_M_1D[i * nverts + j] << "..." << G.arista(i, j) << endl;
-      if (abs(c_out_M_2D[i * nverts + j] - G.arista(i, j)) > 0)
-        cout << "Error 2D (" << i << "," << j << ")   "
-             << c_out_M_2D[i * nverts + j] << "..." << G.arista(i, j) << endl;
+      if (abs(c_out_M_1D[i * nverts + j] - G.arista(i, j)) > 0) {
+        cout << "Error 1D (" << i << "," << j << ")   " << c_out_M_1D[i * nverts + j]
+             << "..." << G.arista(i, j) << endl;
+      }
+      if (abs(c_out_M_2D[i * nverts + j] - G.arista(i, j)) > 0) {
+        cout << "Error 2D (" << i << "," << j << ")   " << c_out_M_2D[i * nverts + j]
+             << "..." << G.arista(i, j) << endl;
+      }
     }
+  }
+  //************************************************************************************************
+#endif
 
   // Liberar memoria
   cudaFree(d_In_M_1D);
