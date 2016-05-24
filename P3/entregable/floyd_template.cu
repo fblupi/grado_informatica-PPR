@@ -42,27 +42,43 @@ __global__ void floyd_kernel2D(int * M, const int nverts, const int k) {
 
 // Kernel Shared 1D
 __global__ void floyd_kernel1DShared(int * d_M, const int nverts, const int k) {
-  int gi = blockIdx.x * blockDim.x + threadIdx.x, // índice global de memoria == ij
-      li = threadIdx.x,                           // índice local en el vector de memoria compartida
-      i = gi / nverts,
-      j = gi - i * nverts;
+  int blockPos = blockIdx.x * blockDim.x, // posicion inicial del bloque en memoria
+      g_ij = blockPos + threadIdx.x,      // índice global de memoria == ij
+      l_ij = threadIdx.x,                 // índice local en el vector de memoria compartida
+      i = g_ij / nverts,                  // índice i en la matriz
+      j = g_ij - i * nverts,              // índice j en la matriz
+      g_kj = k * nverts + j,              // celda (k, j) en el vector en DEVICE
+      l_kj = l_ij + BLOCK_SIZE_1D,        // celda (k, j) en el vector en SHARED
+      g_ik = i * nverts + k,              // celda (i, k) en el vector en DEVICE
+      l_ik = BLOCK_SIZE_1D - 2,           // celda (i, k) en el vector en SHARED
+      l_i1k = BLOCK_SIZE_1D - 1,          // celda (i + 1, k) en el vector en SHARED
+      blockRow = ceil((float) blockPos / BLOCK_SIZE_1D),  // fila de la primera hebra del bloque
+      threadRow = ceil((float) g_ij / BLOCK_SIZE_1D);     // fila de la hebra
 
   __shared__ int s_M[2 * BLOCK_SIZE_1D + 2];
-  s_M[li] = d_M[gi];
-  s_M[li + BLOCK_SIZE_1D] = d_M[k * nverts + j];
-  if (li == 0) {
-    s_M[BLOCK_SIZE_1D - 2] = d_M[i * nverts + k];
+  s_M[l_ij] = d_M[g_ij];    // Copia la celda correspondiente a la fila i
+  s_M[l_kj] = d_M[g_kj];    // Copia la celda correspondiente a la fila j
+  if (blockRow == threadRow) {
+    s_M[l_ik] = d_M[g_ik];  // Copia la celda (i, k)
+  } else {
+    s_M[l_i1k] = d_M[g_ik]; // Copia la celda (i + 1, k)
   }
-  if (li == BLOCK_SIZE_1D - 1) {
-    s_M[BLOCK_SIZE_1D - 1] = d_M[i * nverts + k];
-  }
-
   __syncthreads();
 
   if (i < nverts && j < nverts) {
     if (i != j && i != k && j != k) {
-      //printf("(i=%u, j=%u, k=%u)\n\t[ij] => d_M=%u...s_M=%u\n\t[kj] => d_M=%u...s_M=%u\n\t[ik] => d_M=%u...s_M=%u\n\n", i, j, k, d_M[gi], s_M[li], d_M[k * nverts + j], s_M[li + BLOCK_SIZE_1D], d_M[i * nverts + k], s_M[BLOCK_SIZE_1D - 1]);
-      d_M[gi] = min(s_M[BLOCK_SIZE_1D - 1] + s_M[li + BLOCK_SIZE_1D], s_M[li]);
+      if (blockRow == threadRow) {
+        //if (d_M[g_ij] != s_M[l_ij] ||  d_M[g_kj] != s_M[l_kj] || d_M[g_ik] != s_M[l_ik])
+        //  printf("(i=%u, j=%u, k=%u) => %u\n\t[ij] => d_M=%u...s_M=%u\n\t[kj] => d_M=%u...s_M=%u\n\t[ik] => d_M=%u...s_M=%u\n\n",
+        //    i, j, k, l_ij, d_M[g_ij], s_M[l_ij], d_M[g_kj], s_M[l_kj], d_M[g_ik], s_M[l_ik]);
+        d_M[g_ij] = min(s_M[l_ik] + s_M[l_kj], s_M[l_ij]);
+      } else {
+        //if (d_M[g_ij] != s_M[l_ij] ||  d_M[g_kj] != s_M[l_kj] || d_M[g_ik] != s_M[l_i1k])
+        //  printf("(i=%u, j=%u, k=%u) => %u\n\t[ij] => d_M=%u...s_M=%u\n\t[kj] => d_M=%u...s_M=%u\n\t[ik] => d_M=%u...s_M=%u\n\n",
+        //    i, j, k, l_ij, d_M[g_ij], s_M[l_ij], d_M[g_kj], s_M[l_kj], d_M[g_ik], s_M[l_i1k]);
+        d_M[g_ij] = min(s_M[l_i1k] + s_M[l_kj], s_M[l_ij]);
+      }
+
     }
   }
 }
