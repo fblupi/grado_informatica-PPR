@@ -66,17 +66,10 @@ __global__ void floyd_kernel1DShared(int * d_M, const int nverts, const int k) {
   __syncthreads();
 
   if (i < nverts && j < nverts) {
-    //printf("(i=%u, j=%u) => %u..%u\n", i,j,blockRow,threadRow);
     if (i != j && i != k && j != k) {
       if (blockRow == threadRow) {
-        if (d_M[g_ij] != s_M[l_ij] ||  d_M[g_kj] != s_M[l_kj] || d_M[g_ik] != s_M[l_ik])
-          printf("(i=%u, j=%u, k=%u) => %u\n\t[ij] => d_M=%u...s_M=%u\n\t[kj] => d_M=%u...s_M=%u\n\t[ik] => d_M=%u...s_M=%u\n\n",
-            i, j, k, l_ij, d_M[g_ij], s_M[l_ij], d_M[g_kj], s_M[l_kj], d_M[g_ik], s_M[l_ik]);
         d_M[g_ij] = min(s_M[l_ik] + s_M[l_kj], s_M[l_ij]);
       } else {
-        if (d_M[g_ij] != s_M[l_ij] ||  d_M[g_kj] != s_M[l_kj] || d_M[g_ik] != s_M[l_i1k])
-          printf("(i=%u, j=%u, k=%u) => %u\n\t[ij] => d_M=%u...s_M=%u\n\t[kj] => d_M=%u...s_M=%u\n\t[ik] => d_M=%u...s_M=%u\n\n",
-            i, j, k, l_ij, d_M[g_ij], s_M[l_ij], d_M[g_kj], s_M[l_kj], d_M[g_ik], s_M[l_i1k]);
         d_M[g_ij] = min(s_M[l_i1k] + s_M[l_kj], s_M[l_ij]);
       }
     }
