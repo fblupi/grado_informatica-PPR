@@ -6,7 +6,7 @@
 
 //#define TIEMPOS // Comentar para obtener resultados de la CPU y comparar con estos los de la GPU
 
-#define BLOCK_SIZE_1D 3
+#define BLOCK_SIZE_1D 256
 #define BLOCK_SIZE_2D 16
 
 using namespace std;
@@ -50,8 +50,8 @@ __global__ void floyd_kernel1DShared(int * d_M, const int nverts, const int k) {
       g_kj = k * nverts + j,              // celda (k, j) en el vector en DEVICE
       l_kj = l_ij + BLOCK_SIZE_1D,        // celda (k, j) en el vector en SHARED
       g_ik = i * nverts + k,              // celda (i, k) en el vector en DEVICE
-      l_ik = BLOCK_SIZE_1D - 2,           // celda (i, k) en el vector en SHARED
-      l_i1k = BLOCK_SIZE_1D - 1,          // celda (i + 1, k) en el vector en SHARED
+      l_ik = 2 * BLOCK_SIZE_1D,           // celda (i, k) en el vector en SHARED
+      l_i1k = 2 * BLOCK_SIZE_1D + 1,      // celda (i + 1, k) en el vector en SHARED
       blockRow = floor((float) blockPos / nverts),  // fila de la primera hebra del bloque
       threadRow = floor((float) g_ij / nverts);     // fila de la hebra
 
@@ -75,7 +75,7 @@ __global__ void floyd_kernel1DShared(int * d_M, const int nverts, const int k) {
         d_M[g_ij] = min(s_M[l_ik] + s_M[l_kj], s_M[l_ij]);
       } else {
         if (d_M[g_ij] != s_M[l_ij] ||  d_M[g_kj] != s_M[l_kj] || d_M[g_ik] != s_M[l_i1k])
-          printf("1(i=%u, j=%u, k=%u) => %u\n\t[ij] => d_M=%u...s_M=%u\n\t[kj] => d_M=%u...s_M=%u\n\t[ik] => d_M=%u...s_M=%u\n\n",
+          printf("(i=%u, j=%u, k=%u) => %u\n\t[ij] => d_M=%u...s_M=%u\n\t[kj] => d_M=%u...s_M=%u\n\t[ik] => d_M=%u...s_M=%u\n\n",
             i, j, k, l_ij, d_M[g_ij], s_M[l_ij], d_M[g_kj], s_M[l_kj], d_M[g_ik], s_M[l_i1k]);
         d_M[g_ij] = min(s_M[l_i1k] + s_M[l_kj], s_M[l_ij]);
       }
