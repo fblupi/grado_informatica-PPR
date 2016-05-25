@@ -58,9 +58,9 @@ __global__ void floyd_kernel1DShared(int * d_M, const int nverts, const int k) {
   __shared__ int s_M[2 * BLOCK_SIZE_1D + 2];
   s_M[l_ij] = d_M[g_ij];    // Copia la celda correspondiente a la fila i
   s_M[l_kj] = d_M[g_kj];    // Copia la celda correspondiente a la fila j
-  if (blockRow == threadRow) {
+  if (threadIdx.x == 0) {
     s_M[l_ik] = d_M[g_ik];  // Copia la celda (i, k)
-  } else {
+  } else if(threadIdx.x == BLOCK_SIZE_1D - 1) {
     s_M[l_i1k] = d_M[g_ik]; // Copia la celda (i + 1, k)
   }
   __syncthreads();
