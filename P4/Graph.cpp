@@ -33,13 +33,13 @@ void Graph::imprime()
   int i, j, vij;
   for(i = 0; i < vertices; i++) {
     cout << "A[" << i << ",*]= ";
-   
+
     for (j = 0; j < vertices; j++) {
-      if (A[i * vertices + j] == INF) 
+      if (A[i * vertices + j] == INF)
         cout << "INF";
-      else  
+      else
         cout << A[i * vertices + j];
-      if (j < vertices - 1) 
+      if (j < vertices - 1)
         cout << ",";
       else
         cout << endl;
@@ -63,13 +63,13 @@ void Graph::lee(char *filename)
   infile.getline(buf, BUF_SIZE, '\n');
   vertices = atoi(buf);
   A = new int[vertices * vertices];
- 
+
   int i, j;
   for (i = 0; i < vertices; i++)
     for (j = 0; j < vertices; j++)
       if (i == j) A[i * vertices + j]=0;
       else A[i * vertices + j]=INF;
-    
+
   while (infile.getline(buf, BUF_SIZE) && infile.good() && !infile.eof()) {
     char *vertname2 = strpbrk(buf, " \t");
     *vertname2++ = '\0';
@@ -82,6 +82,20 @@ void Graph::lee(char *filename)
   }
 }
 //***********************************************************************
-int * Graph::ptrMatriz() {
-  return &A[0];
+void Graph::copia_matriz(int *M) {
+  int i, j;
+  for (i = 0; i < vertices; i++) {
+    for (j = 0; j < vertices; j++) {
+      M[i * vertices + j] = A[i * vertices + j];
+    }
+  }
+}
+//***********************************************************************
+void Graph::lee_matriz(int *M) {
+  int i, j;
+  for (i = 0; i < vertices; i++) {
+    for (j = 0; j < vertices; j++) {
+      A[i * vertices + j] = M[i * vertices + j];
+    }
+  }
 }

@@ -3,7 +3,7 @@
 #define GRAPH_H
 
 //**************************************************************************
-const int INF= 100000;
+const int INF = 100000;
 
 //**************************************************************************
 class Graph //Adjacency List clas
@@ -18,7 +18,8 @@ public:
     int arista(const int ptA,const int ptB);
     void imprime();
     void lee(char *filename);
-    int * ptrMatriz();
+    void copia_matriz(int *M);
+    void lee_matriz(int *M);
 };
 
 //**************************************************************************

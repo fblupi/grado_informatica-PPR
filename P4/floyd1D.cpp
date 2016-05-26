@@ -11,14 +11,15 @@
 using namespace std;
 
 int main(int argc, char *argv[]) {
-  int P;
+  int procs, chunk, nverts, i, j, k, ik, kj, ij, *M;
+  double t;
 
   switch(argc) {
     case 3:
-      P = atoi(argv[2]);
+      procs = atoi(argv[2]);
     break;
     case 2:
-      P = omp_get_num_procs();
+      procs = omp_get_num_procs();
       break;
     default:
       cerr << "Sintaxis: " << argv[0] << "<archivo de grafo> <num procs>" << endl;
@@ -32,23 +33,29 @@ int main(int argc, char *argv[]) {
     G.imprime();
   #endif
 
-  int nverts = G.vertices;
+  nverts = G.vertices;
+  chunk = nverts / procs;
 
-  double t = omp_get_wtime();
+  M = (int *) malloc(nverts * nverts * sizeof(int));
+  G.copia_matriz(M);
+
+  t = omp_get_wtime();
   // BUCLE PPAL DEL ALGORITMO
-  int i, j, k, vikj;
   for (k = 0; k < nverts; k++) {
     for (i = 0; i < nverts; i++) {
+      ik = i * nverts + k;
       for (j = 0; j < nverts; j++) {
         if (i != j && i != k && j != k) {
-          vikj = G.arista(i, k) + G.arista(k, j);
-          vikj = min(vikj, G.arista(i, j));
-          G.inserta_arista(i, j, vikj);
+          kj = k * nverts + j;
+          ij = i * nverts + j;
+          M[ij] = min(M[ik] + M[kj], M[ij]);
         }
       }
     }
   }
   t = omp_get_wtime() - t;
+
+  G.lee_matriz(M);
 
   #ifdef PRINT_ALL
     cout << endl << "El grafo con las distancias de los caminos más cortos es:" << endl;
