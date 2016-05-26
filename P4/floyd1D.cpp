@@ -1,4 +1,6 @@
 #include <iostream>
+#include <cstring>
+#include <cstdlib>
 #include <fstream>
 #include <string.h>
 #include <omp.h>
@@ -9,9 +11,18 @@
 using namespace std;
 
 int main(int argc, char *argv[]) {
-  if (argc != 2) {
-    cerr << "Sintaxis: " << argv[0] << " <archivo de grafo>" << endl;
-    return(-1);
+  int P;
+
+  switch(argc) {
+    case 3:
+      P = atoi(argv[2]);
+    break;
+    case 2:
+      P = omp_get_num_procs();
+      break;
+    default:
+      cerr << "Sintaxis: " << argv[0] << "<archivo de grafo> <num procs>" << endl;
+      return(-1);
   }
 
   Graph G;
