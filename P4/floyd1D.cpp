@@ -40,8 +40,8 @@ int main(int argc, char *argv[]) {
   G.copia_matriz(M);
 
   t = omp_get_wtime();
-  // BUCLE PPAL DEL ALGORITMO
   for (k = 0; k < nverts; k++) {
+    #pragma omp parallel for private(i, j, ik, ij, kj) schedule(static, chunk)
     for (i = 0; i < nverts; i++) {
       ik = i * nverts + k;
       for (j = 0; j < nverts; j++) {
@@ -64,4 +64,6 @@ int main(int argc, char *argv[]) {
   #else
     cout << t << endl;
   #endif
+
+  delete[] M;
 }
