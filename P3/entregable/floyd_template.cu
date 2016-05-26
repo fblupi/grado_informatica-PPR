@@ -4,7 +4,7 @@
 #include <time.h>
 #include "Graph.h"
 
-//#define TIEMPOS // Comentar para obtener resultados de la CPU y comparar con estos los de la GPU
+#define TIEMPOS // Comentar para obtener resultados de la CPU y comparar con estos los de la GPU
 
 #define BLOCK_SIZE_1D 256
 #define BLOCK_SIZE_2D 16
@@ -46,13 +46,12 @@ __global__ void floyd_kernel2D(int * M, const int nverts, const int k) {
 __global__ void floyd_kernel1DShared(int * d_M, const int nverts, const int k) {
   int blockPos = blockIdx.x * blockDim.x, // posicion inicial del bloque en memoria
       g_ij = blockPos + threadIdx.x,      // índice global de memoria == ij
-      l_ij = threadIdx.x,                 // índice local en el vector de memoria compartida
       i = g_ij / nverts,                  // índice i en la matriz
       j = g_ij - i * nverts;              // índice j en la matriz
 
   if (i < nverts && j < nverts) {
-    int blockRow = floor((float) blockPos / nverts),  // fila de la primera hebra del bloque
-        threadRow = floor((float) g_ij / nverts);     // fila de la hebra
+    int blockRow = blockPos / nverts,     // fila de la primera hebra del bloque
+        l_ij = threadIdx.x;               // índice local en el vector de memoria compartida
 
     __shared__ int s_Mi[BLOCK_SIZE_1D],
                    s_Mk[BLOCK_SIZE_1D],
@@ -70,7 +69,7 @@ __global__ void floyd_kernel1DShared(int * d_M, const int nverts, const int k) {
     __syncthreads();
 
     if (i != j && i != k && j != k) {
-      if (blockRow == threadRow) {
+      if (i == blockRow) {
         d_M[g_ij] = min(s_Mik[0] + s_Mk[l_ij], s_Mi[l_ij]);
       } else {
         d_M[g_ij] = min(s_Mik[1] + s_Mk[l_ij], s_Mi[l_ij]);
