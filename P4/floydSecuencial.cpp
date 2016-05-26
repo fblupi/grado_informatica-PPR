@@ -1,16 +1,14 @@
 #include <iostream>
 #include <fstream>
 #include <string.h>
-#include <time.h>
+#include <omp.h>
 #include "Graph.h"
 
 #define PRINT_ALL
 
 using namespace std;
 
-int main (int argc, char *argv[])
-{
-
+int main(int argc, char *argv[]) {
   if (argc != 2) {
     cerr << "Sintaxis: " << argv[0] << " <archivo de grafo>" << endl;
     return(-1);
@@ -25,7 +23,7 @@ int main (int argc, char *argv[])
 
   int nverts = G.vertices;
 
-  double t = clock();
+  double t = omp_get_wtime();
   // BUCLE PPAL DEL ALGORITMO
   int i, j, k, vikj;
   for (k = 0; k < nverts; k++) {
@@ -39,7 +37,7 @@ int main (int argc, char *argv[])
       }
     }
   }
-  t = (clock() - t) / CLOCKS_PER_SEC;
+  t = omp_get_wtime() - t;
 
   #ifdef PRINT_ALL
     cout << endl << "El grafo con las distancias de los caminos más cortos es:" << endl;
