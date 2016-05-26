@@ -6,7 +6,7 @@
 #include <omp.h>
 #include "Graph.h"
 
-#define PRINT_ALL
+//#define PRINT_ALL
 
 using namespace std;
 
@@ -15,33 +15,40 @@ int main(int argc, char *argv[]) {
   double t;
 
   switch(argc) {
-    case 3:
+    case 3: // se especifica el número de procesadores
       procs = atoi(argv[2]);
-    break;
-    case 2:
+      break;
+    case 2: // no se especifica el número de procesadores => se usan todos los que tenga el equipo
       procs = omp_get_num_procs();
       break;
-    default:
+    default: // número incorrecto de parámetros => se termina la ejecución
       cerr << "Sintaxis: " << argv[0] << "<archivo de grafo> <num procs>" << endl;
       return(-1);
   }
 
   Graph G;
-  G.lee(argv[1]);	// Read the Graph
+  G.lee(argv[1]);	// Lee el grafo
   #ifdef PRINT_ALL
     cout << "El grafo de entrada es:" << endl;
     G.imprime();
   #endif
 
-  nverts = G.vertices;
-  chunk = nverts / procs;
+  nverts = G.vertices;                                  // Número de vértices
+  procs > nverts ? chunk = 1 : chunk = nverts / procs;  // Tamaño de bloque
 
-  M = (int *) malloc(nverts * nverts * sizeof(int));
-  G.copia_matriz(M);
+  #ifdef PRINT_ALL
+    cout << endl;
+    cout << "El tamaño del problema es: " << nverts << endl;
+    cout << "El número de procesos es: " << procs << endl;
+    cout << "El tamaño de bloque es: " << chunk << endl;
+  #endif
+
+  M = (int *) malloc(nverts * nverts * sizeof(int));    // Se reserva espacio en memoria para M
+  G.copia_matriz(M);                                    // Se copia la matriz del grafo
 
   t = omp_get_wtime();
   for (k = 0; k < nverts; k++) {
-    #pragma omp parallel for private(i, j, ik, ij, kj) schedule(static, chunk)
+    #pragma omp parallel for private(i, j, ik, ij, kj) schedule(static, chunk)  // reparto estático por bloques
     for (i = 0; i < nverts; i++) {
       ik = i * nverts + k;
       for (j = 0; j < nverts; j++) {
@@ -55,7 +62,7 @@ int main(int argc, char *argv[]) {
   }
   t = omp_get_wtime() - t;
 
-  G.lee_matriz(M);
+  G.lee_matriz(M);  // Se copia en el grafo el resultado calculado en la matriz
 
   #ifdef PRINT_ALL
     cout << endl << "El grafo con las distancias de los caminos más cortos es:" << endl;
@@ -66,4 +73,6 @@ int main(int argc, char *argv[]) {
   #endif
 
   delete[] M;
+
+  return(0);
 }
