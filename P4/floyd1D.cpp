@@ -6,7 +6,7 @@
 #include <omp.h>
 #include "Graph.h"
 
-//#define PRINT_ALL
+#define PRINT_ALL
 
 using namespace std;
 
@@ -25,6 +25,7 @@ int main(int argc, char *argv[]) {
       cerr << "Sintaxis: " << argv[0] << "<archivo de grafo> <num procs>" << endl;
       return(-1);
   }
+  omp_set_num_threads(procs);
 
   Graph G;
   G.lee(argv[1]);	// Lee el grafo
@@ -48,17 +49,14 @@ int main(int argc, char *argv[]) {
 
   t = omp_get_wtime();
   for (k = 0; k < nverts; k++) {
-    #pragma omp parallel // inicio de la región paralela
-    {
-      #pragma omp for private(i, j, ik, ij, kj) schedule(static, chunk)  // reparto estático por bloques
-      for (i = 0; i < nverts; i++) {
-        ik = i * nverts + k;
-        for (j = 0; j < nverts; j++) {
-          if (i != j && i != k && j != k) {
-            kj = k * nverts + j;
-            ij = i * nverts + j;
-            M[ij] = min(M[ik] + M[kj], M[ij]);
-          }
+    #pragma omp parallel for schedule(static, chunk) private(i, j, ik, ij, kj)  // inicio de la región paralela, reparto estático por bloques
+    for (i = 0; i < nverts; i++) {
+      ik = i * nverts + k;
+      for (j = 0; j < nverts; j++) {
+        if (i != j && i != k && j != k) {
+          kj = k * nverts + j;
+          ij = i * nverts + j;
+          M[ij] = min(M[ik] + M[kj], M[ij]);
         }
       }
     }
