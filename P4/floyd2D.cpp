@@ -4,6 +4,7 @@
 #include <fstream>
 #include <string.h>
 #include <omp.h>
+#include <math.h>
 #include "Graph.h"
 
 #define PRINT_ALL
@@ -11,7 +12,8 @@
 using namespace std;
 
 int main(int argc, char *argv[]) {
-  int procs, chunk, nverts, i, j, k, ik, kj, ij, *M;
+  int procs, sqrtP, tamaBloque, nverts, i, j, k, ik, kj, ij, *M, id,
+      iIni, iFin, jIni, jFin, iGlobal, jGlobal;
   double t;
 
   switch(argc) {
@@ -25,6 +27,7 @@ int main(int argc, char *argv[]) {
       cerr << "Sintaxis: " << argv[0] << "<archivo de grafo> <num procs>" << endl;
       return(-1);
   }
+  omp_set_num_threads(procs);
 
   Graph G;
   G.lee(argv[1]);	// Lee el grafo
@@ -33,34 +36,45 @@ int main(int argc, char *argv[]) {
     G.imprime();
   #endif
 
-  nverts = G.vertices;                                  // Número de vértices
-  procs > nverts ? chunk = 1 : chunk = nverts / procs;  // Tamaño de bloque
+  sqrtP = sqrt(procs);
+  nverts = G.vertices;          // Número de vértices
+  tamaBloque = nverts / sqrtP;  // Tamaño de bloque
 
   #ifdef PRINT_ALL
     cout << endl;
     cout << "El tamaño del problema es: " << nverts << endl;
     cout << "El número de procesos es: " << procs << endl;
-    cout << "El tamaño de bloque es: " << chunk << endl;
+    cout << "El tamaño de bloque (tama submatriz) es: " << tamaBloque << "x" << tamaBloque << endl;
   #endif
 
   M = (int *) malloc(nverts * nverts * sizeof(int));    // Se reserva espacio en memoria para M
   G.copia_matriz(M);                                    // Se copia la matriz del grafo
 
   t = omp_get_wtime();
-  for (k = 0; k < nverts; k++) {
-    #pragma omp parallel // inicio de la región paralela
-    {
-      #pragma omp for private(i, j, ik, ij, kj) schedule(static, chunk)  // reparto estático por bloques
-      for (i = 0; i < nverts; i++) {
-        ik = i * nverts + k;
-        for (j = 0; j < nverts; j++) {
-          if (i != j && i != k && j != k) {
-            kj = k * nverts + j;
-            ij = i * nverts + j;
+
+  #pragma omp parallel private(id, i, j, ik, ij, kj, iIni, iFin, jIni, jFin, iGlobal, jGlobal) // inicio de la región paralela
+  {
+    id = omp_get_thread_num();
+    iIni = id / sqrtP * tamaBloque;
+    iFin = (id / sqrtP + 1) * tamaBloque;
+    jIni = id % sqrtP * tamaBloque;
+    jFin = (id % sqrtP + 1) * tamaBloque;
+    //printf("%d --> i = %d ~ %d, j == %d ~ %d\n", id, iIni, iFin, jIni, jFin);
+    for (k = 0; k < nverts; k++) {
+      for (i = 0; i < tamaBloque; i++) {
+        iGlobal = iIni + i;
+        ik = iGlobal * nverts + k;
+        for (j = 0; j < tamaBloque; j++) {
+          jGlobal = jIni + j;
+          //printf("%d (k = %d) --> (%d, %d)\n", id, k, iGlobal, jGlobal);
+          if (iGlobal != jGlobal && iGlobal != k && jGlobal != k) {
+            kj = k * nverts + jGlobal;
+            ij = iGlobal * nverts + jGlobal;
             M[ij] = min(M[ik] + M[kj], M[ij]);
           }
         }
       }
+      #pragma omp barrier
     }
   }
   t = omp_get_wtime() - t;
