@@ -5,6 +5,7 @@
 #include <string.h>
 #include <omp.h>
 #include <math.h>
+#include <unistd.h>
 #include "Graph.h"
 
 #define PRINT_ALL
@@ -12,7 +13,7 @@
 using namespace std;
 
 int main(int argc, char *argv[]) {
-  int procs, sqrtP, tamaBloque, nverts, i, j, k, ik, kj, ij, *M, id,
+  int procs, sqrtP, tamaBloque, nverts, i, j, k, ik, kj, ij, *M, *colK, *filK, id,
       iIni, iFin, jIni, jFin, iGlobal, jGlobal;
   double t;
 
@@ -49,6 +50,8 @@ int main(int argc, char *argv[]) {
 
   M = (int *) malloc(nverts * nverts * sizeof(int));    // Se reserva espacio en memoria para M
   G.copia_matriz(M);                                    // Se copia la matriz del grafo
+  colK = (int *) malloc(nverts * sizeof(int));
+  filK = (int *) malloc(nverts * sizeof(int));
 
   t = omp_get_wtime();
 
@@ -61,20 +64,24 @@ int main(int argc, char *argv[]) {
     jFin = (id % sqrtP + 1) * tamaBloque;
     //printf("%d --> i = %d ~ %d, j == %d ~ %d\n", id, iIni, iFin, jIni, jFin);
     for (k = 0; k < nverts; k++) {
+      #pragma omp master
+      for (i = 0; i < nverts; i++) {
+        colK[i] = M[i * nverts + k];
+        filK[i] = M[k * nverts + i];
+      }
+      #pragma omp barrier
+      #pragma omp flush(colK)
+      #pragma omp flush(filK)
       for (i = 0; i < tamaBloque; i++) {
         iGlobal = iIni + i;
-        ik = iGlobal * nverts + k;
         for (j = 0; j < tamaBloque; j++) {
           jGlobal = jIni + j;
-          //printf("%d (k = %d) --> (%d, %d)\n", id, k, iGlobal, jGlobal);
           if (iGlobal != jGlobal && iGlobal != k && jGlobal != k) {
-            kj = k * nverts + jGlobal;
             ij = iGlobal * nverts + jGlobal;
-            M[ij] = min(M[ik] + M[kj], M[ij]);
+            M[ij] = min(colK[iGlobal] + filK[jGlobal], M[ij]);
           }
         }
       }
-      #pragma omp barrier
     }
   }
   t = omp_get_wtime() - t;
@@ -90,6 +97,8 @@ int main(int argc, char *argv[]) {
   #endif
 
   delete[] M;
+  delete[] filK;
+  delete[] colK;
 
   return(0);
 }
