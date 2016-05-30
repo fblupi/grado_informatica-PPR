@@ -13,8 +13,8 @@
 using namespace std;
 
 int main(int argc, char *argv[]) {
-  int procs, sqrtP, tamaBloque, nverts, i, j, k, ik, kj, ij, *M, *colK, *filK, id,
-      iIni, iFin, jIni, jFin, iGlobal, jGlobal;
+  int procs, sqrtP, tamaBloque, nverts, i, j, k, ij, *M, *colK, *filK, id,
+      iIni, iFin, jIni, jFin, iGlobal, jGlobal, nvertsPorK, nvertsPorI, idEntreSqrtP, idModuloSqrtP;
   double t;
 
   switch(argc) {
@@ -55,30 +55,31 @@ int main(int argc, char *argv[]) {
 
   t = omp_get_wtime();
 
-  #pragma omp parallel private(id, i, j, ik, ij, kj, iIni, iFin, jIni, jFin, iGlobal, jGlobal) // inicio de la región paralela
-  {
-    id = omp_get_thread_num();
-    iIni = id / sqrtP * tamaBloque;
-    iFin = (id / sqrtP + 1) * tamaBloque;
-    jIni = id % sqrtP * tamaBloque;
-    jFin = (id % sqrtP + 1) * tamaBloque;
-    //printf("%d --> i = %d ~ %d, j == %d ~ %d\n", id, iIni, iFin, jIni, jFin);
-    for (k = 0; k < nverts; k++) {
-      #pragma omp master
+
+  for (k = 0; k < nverts; k++) {
+    #pragma omp parallel shared(colK, filK) private(id, i, j, ij, iIni, iFin, jIni, jFin, iGlobal, jGlobal, idEntreSqrtP, idModuloSqrtP, nvertsPorK, nvertsPorI) // inicio de la región paralela
+    {
+      id = omp_get_thread_num();
+      idEntreSqrtP = id / sqrtP;
+      idModuloSqrtP = id % sqrtP;
+      iIni = idEntreSqrtP * tamaBloque;
+      iFin = (idEntreSqrtP + 1) * tamaBloque;
+      jIni = idModuloSqrtP * tamaBloque;
+      jFin = (idModuloSqrtP + 1) * tamaBloque;
+
+      nvertsPorK = k * nverts;
+
+      #pragma omp critical
       for (i = 0; i < nverts; i++) {
-        colK[i] = M[i * nverts + k];
-        filK[i] = M[k * nverts + i];
+        colK[i] = M[nverts * i + k];
+        filK[i] = M[nvertsPorK + i];
       }
-      #pragma omp barrier
-      #pragma omp flush(colK)
-      #pragma omp flush(filK)
-      for (i = 0; i < tamaBloque; i++) {
-        iGlobal = iIni + i;
-        for (j = 0; j < tamaBloque; j++) {
-          jGlobal = jIni + j;
-          if (iGlobal != jGlobal && iGlobal != k && jGlobal != k) {
-            ij = iGlobal * nverts + jGlobal;
-            M[ij] = min(colK[iGlobal] + filK[jGlobal], M[ij]);
+      for (i = iIni; i < iFin; i++) {
+        nvertsPorI = i * nverts;
+        for (j = jIni; j < jFin; j++) {
+          if (i != j && i != k && j != k) {
+            ij = nvertsPorI + j;
+            M[ij] = min(colK[i] + filK[j], M[ij]);
           }
         }
       }

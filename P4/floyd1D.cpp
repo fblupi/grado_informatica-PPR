@@ -6,7 +6,7 @@
 #include <omp.h>
 #include "Graph.h"
 
-#define PRINT_ALL
+//#define PRINT_ALL
 
 using namespace std;
 
