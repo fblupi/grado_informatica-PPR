@@ -8,7 +8,7 @@
 #include <unistd.h>
 #include "Graph.h"
 
-#define PRINT_ALL
+//#define PRINT_ALL
 
 using namespace std;
 
@@ -66,6 +66,18 @@ int main(int argc, char *argv[]) {
     for (k = 0; k < nverts; k++) {
       nvertsPorK = k * nverts;
       #pragma omp barrier
+
+      if (k >= iIni && k < iFin) { // La fila K pertenece al proceso
+        for (i = 0; i < nverts; i++) {
+          filK[i] = M[nvertsPorK + i];
+        }
+      }
+      if (k >= jIni && k < jFin) { // La columna K pertenece al proceso
+        for (i = 0; i < nverts; i++) {
+          colK[i] = M[nverts * i + k];
+        }
+      }
+
       for (i = 0; i < nverts; i++) {
         colK[i] = M[nverts * i + k];
         filK[i] = M[nvertsPorK + i];
