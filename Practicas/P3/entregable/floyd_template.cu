@@ -79,25 +79,27 @@ __global__ void floyd_kernel1DShared(int * d_M, const int nverts, const int k) {
 
 // Kernel Shared 2D
 __global__ void floyd_kernel2DShared(int * d_M, const int nverts, const int k) {
-  // int ii = blockIdx.y * blockDim.y + threadIdx.y,
-  //     jj = blockIdx.x * blockDim.x + threadIdx.x,
-  //     ij = ii * nverts + jj,
-  //     i = ij / nverts,
-  //     j = ij - i * nverts;
-  //
-  // if (i < nverts && j < nverts) {
-  //   __shared__ int s_filK[BLOCK_SIZE_2D],
-  //                  s_colK[BLOCK_SIZE_2D];
-  //
-  //   if (i == 0) s_filK[j] = d_M[i * nverts + k];
-  //   if (j == 0) s_colK[i] = d_M[k * nverts + j];
-  //
-  //   __syncthreads();
-  //
-  //   if(i != j && i != k && j != k) {
-  //     M[ij] = min(s_filK[__] + s_colK[__], M[ij]);
-  //   }
-  // }
+  int i = blockIdx.y * blockDim.y + threadIdx.y,
+      j = blockIdx.x * blockDim.x + threadIdx.x,
+      ij, l_i, l_j;
+
+  if (i < nverts && j < nverts) {
+    __shared__ int s_filK[BLOCK_SIZE_2D],
+                   s_colK[BLOCK_SIZE_2D];
+
+    l_i = threadIdx.y;
+    l_j = threadIdx.x;
+
+    if (l_i == 0) s_filK[l_j] = d_M[k * nverts + j];
+    if (l_j == 0) s_colK[l_i] = d_M[i * nverts + k];
+
+    __syncthreads();
+
+    if(i != j && i != k && j != k) {
+      ij = i * nverts + j;
+      d_M[ij] = min(s_colK[l_i] + s_filK[l_j], d_M[ij]);
+    }
+  }
 }
 
 
