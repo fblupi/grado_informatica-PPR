@@ -64,11 +64,10 @@ int main(int argc, char *argv[]) {
     jIni = idModuloSqrtP * tamaBloque;
     jFin = (idModuloSqrtP + 1) * tamaBloque;
     for (k = 0; k < nverts; k++) {
-      nvertsPorK = k * nverts;
       #pragma omp barrier
-
       if (k >= iIni && k < iFin) { // La fila K pertenece al proceso
         for (i = 0; i < nverts; i++) {
+          nvertsPorK = k * nverts;
           filK[i] = M[nvertsPorK + i];
         }
       }
@@ -77,11 +76,8 @@ int main(int argc, char *argv[]) {
           colK[i] = M[nverts * i + k];
         }
       }
+      #pragma omp barrier
 
-      for (i = 0; i < nverts; i++) {
-        colK[i] = M[nverts * i + k];
-        filK[i] = M[nvertsPorK + i];
-      }
       for (i = iIni; i < iFin; i++) {
         nvertsPorI = i * nverts;
         for (j = jIni; j < jFin; j++) {
@@ -105,9 +101,7 @@ int main(int argc, char *argv[]) {
     cout << t << endl;
   #endif
 
-  //free(M);
-  //free(filK);
-  //free(colK);
+  delete[] M;
 
   return(0);
 }
