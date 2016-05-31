@@ -55,21 +55,18 @@ int main(int argc, char *argv[]) {
 
   t = omp_get_wtime();
 
-
-  for (k = 0; k < nverts; k++) {
-    #pragma omp parallel shared(colK, filK) private(id, i, j, ij, iIni, iFin, jIni, jFin, iGlobal, jGlobal, idEntreSqrtP, idModuloSqrtP, nvertsPorK, nvertsPorI) // inicio de la región paralela
-    {
-      id = omp_get_thread_num();
-      idEntreSqrtP = id / sqrtP;
-      idModuloSqrtP = id % sqrtP;
-      iIni = idEntreSqrtP * tamaBloque;
-      iFin = (idEntreSqrtP + 1) * tamaBloque;
-      jIni = idModuloSqrtP * tamaBloque;
-      jFin = (idModuloSqrtP + 1) * tamaBloque;
-
+  #pragma omp parallel private(id, i, j, k, ij, iIni, iFin, jIni, jFin, iGlobal, jGlobal, idEntreSqrtP, idModuloSqrtP, nvertsPorK, nvertsPorI) // inicio de la región paralela
+  {
+    id = omp_get_thread_num();
+    idEntreSqrtP = id / sqrtP;
+    idModuloSqrtP = id % sqrtP;
+    iIni = idEntreSqrtP * tamaBloque;
+    iFin = (idEntreSqrtP + 1) * tamaBloque;
+    jIni = idModuloSqrtP * tamaBloque;
+    jFin = (idModuloSqrtP + 1) * tamaBloque;
+    for (k = 0; k < nverts; k++) {
       nvertsPorK = k * nverts;
-
-      #pragma omp critical
+      #pragma omp barrier
       for (i = 0; i < nverts; i++) {
         colK[i] = M[nverts * i + k];
         filK[i] = M[nvertsPorK + i];
@@ -97,9 +94,9 @@ int main(int argc, char *argv[]) {
     cout << t << endl;
   #endif
 
-  delete[] M;
-  delete[] filK;
-  delete[] colK;
+  //free(M);
+  //free(filK);
+  //free(colK);
 
   return(0);
 }
