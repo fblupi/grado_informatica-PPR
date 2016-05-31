@@ -4,7 +4,7 @@
 #include <time.h>
 #include "Graph.h"
 
-#define TIEMPOS // Comentar para obtener resultados de la CPU y comparar con estos los de la GPU
+//#define TIEMPOS // Comentar para obtener resultados de la CPU y comparar con estos los de la GPU
 
 #define BLOCK_SIZE_1D 256
 #define BLOCK_SIZE_2D 16
@@ -29,14 +29,13 @@ __global__ void floyd_kernel1D(int * M, const int nverts, const int k) {
 
 // Kernel 2D
 __global__ void floyd_kernel2D(int * M, const int nverts, const int k) {
-  int ii = blockIdx.y * blockDim.y + threadIdx.y,
-      jj = blockIdx.x * blockDim.x + threadIdx.x,
-      ij = ii * nverts + jj,
-      i = ij / nverts,
-      j = ij - i * nverts;
+  int i = blockIdx.y * blockDim.y + threadIdx.y,
+      j = blockIdx.x * blockDim.x + threadIdx.x,
+      ij;
 
   if (i < nverts && j < nverts) {
     if (i != j && i != k && j != k) {
+      ij = i * nverts + j;
       M[ij] = min(M[i * nverts + k] + M[k * nverts + j], M[ij]);
     }
   }
@@ -76,6 +75,29 @@ __global__ void floyd_kernel1DShared(int * d_M, const int nverts, const int k) {
       }
     }
   }
+}
+
+// Kernel Shared 2D
+__global__ void floyd_kernel2DShared(int * d_M, const int nverts, const int k) {
+  // int ii = blockIdx.y * blockDim.y + threadIdx.y,
+  //     jj = blockIdx.x * blockDim.x + threadIdx.x,
+  //     ij = ii * nverts + jj,
+  //     i = ij / nverts,
+  //     j = ij - i * nverts;
+  //
+  // if (i < nverts && j < nverts) {
+  //   __shared__ int s_filK[BLOCK_SIZE_2D],
+  //                  s_colK[BLOCK_SIZE_2D];
+  //
+  //   if (i == 0) s_filK[j] = d_M[i * nverts + k];
+  //   if (j == 0) s_colK[i] = d_M[k * nverts + j];
+  //
+  //   __syncthreads();
+  //
+  //   if(i != j && i != k && j != k) {
+  //     M[ij] = min(s_filK[__] + s_colK[__], M[ij]);
+  //   }
+  // }
 }
 
 
@@ -121,13 +143,15 @@ int main(int argc, char *argv[]) {
   int * c_out_M_1D = new int[nverts2];        // Matriz en el HOST 1D
   int * c_out_M_2D = new int[nverts2];        // Matriz en el HOST 2D
   int * c_out_M_1DShared = new int[nverts2];  // Matriz en el HOST 1D Shared
+  int * c_out_M_2DShared = new int[nverts2];  // Matriz en el HOST 2D Shared
   int size = nverts2 * sizeof(int);           // Tama en bytes de la matriz de salida
   int * d_In_M_1D = NULL;                     // Matriz en DEVICE para 1D
   int * d_In_M_2D = NULL;                     // Matriz en DEVICE para 2D
-  int * d_In_M_1DShared = NULL;               // Matriz en DEVICE para 2D
+  int * d_In_M_1DShared = NULL;               // Matriz en DEVICE para 1D Shared
+  int * d_In_M_2DShared = NULL;               // Matriz en DEVICE para 2D Shared
 
   int i, j, k;
-  double T, Tgpu1D, Tgpu2D, Tgpu1DShared, Tcpu;
+  double T, Tgpu1D, Tgpu2D, Tgpu1DShared, Tgpu2DShared, Tcpu;
 
   //************************************************************************************************
   // GPU phase (1D)
@@ -231,6 +255,40 @@ int main(int argc, char *argv[]) {
   Tgpu1DShared = (Tgpu1DShared - T) / CLOCKS_PER_SEC;
   cout << "Tiempo gastado GPU (1D Shared) = " << Tgpu1DShared << endl;
 
+  //************************************************************************************************
+  // GPU phase (2D Shared Memory)
+
+  // Reservar espacio en memoria para la matriz en DEVICE
+  err = cudaMalloc((void **) &d_In_M_2DShared, size);
+  if (err != cudaSuccess) {
+    cout << "ERROR: Bad Allocation in Device Memory" << endl;
+  }
+
+  T = clock();
+
+  // Copiar los datos de la matriz en HOST en la matriz en DEVICE
+  err = cudaMemcpy(d_In_M_2DShared, G.Get_Matrix(), size, cudaMemcpyHostToDevice);
+  if (err != cudaSuccess) {
+    cout << "ERROR: COPY MATRIX TO DEVICE" << endl;
+  }
+
+  for (k = 0; k < niters; k++) {
+    // Kernel Launch
+    floyd_kernel2DShared <<< nblocks2D, blocksize2D >>> (d_In_M_2DShared, nverts, k);
+    err = cudaGetLastError();
+    if (err != cudaSuccess) {
+      fprintf(stderr, "Failed to launch kernel!\n");
+      exit(EXIT_FAILURE);
+    }
+  }
+
+  // Copiar los datos de la matriz en DEVICE en la matriz en HOST
+  cudaMemcpy(c_out_M_2DShared, d_In_M_2DShared, size, cudaMemcpyDeviceToHost);
+
+  Tgpu2DShared = clock();
+  Tgpu2DShared = (Tgpu2DShared - T) / CLOCKS_PER_SEC;
+  cout << "Tiempo gastado GPU (2D Shared) = " << Tgpu2DShared << endl;
+
 #ifndef TIEMPOS
   //************************************************************************************************
   // CPU phase
@@ -257,6 +315,7 @@ int main(int argc, char *argv[]) {
   cout << "Ganancia (1D) = " << Tcpu / Tgpu1D << endl;
   cout << "Ganancia (2D) = " << Tcpu / Tgpu2D << endl;
   cout << "Ganancia (1D Shared) = " << Tcpu / Tgpu1DShared << endl;
+  cout << "Ganancia (2D Shared) = " << Tcpu / Tgpu2DShared << endl;
 
   //************************************************************************************************
   // Comprobar que los resultados en CPU y GPU son los mismos
@@ -275,6 +334,10 @@ int main(int argc, char *argv[]) {
         cout << "Error 1D Shared (" << i << "," << j << ")   " << c_out_M_1DShared[i * nverts + j]
              << "..." << G.arista(i, j) << endl;
       }
+      if (abs(c_out_M_2DShared[i * nverts + j] - G.arista(i, j)) > 0) {
+        cout << "Error 2D Shared (" << i << "," << j << ")   " << c_out_M_2DShared[i * nverts + j]
+             << "..." << G.arista(i, j) << endl;
+      }
     }
   }
   //************************************************************************************************
@@ -284,7 +347,9 @@ int main(int argc, char *argv[]) {
   cudaFree(d_In_M_1D);
   cudaFree(d_In_M_2D);
   cudaFree(d_In_M_1DShared);
+  cudaFree(d_In_M_2DShared);
   delete[] c_out_M_1D;
   delete[] c_out_M_2D;
   delete[] c_out_M_1DShared;
+  delete[] c_out_M_2DShared;
 }
