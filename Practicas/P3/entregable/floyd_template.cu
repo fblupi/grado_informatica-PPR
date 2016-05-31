@@ -4,7 +4,7 @@
 #include <time.h>
 #include "Graph.h"
 
-//#define TIEMPOS // Comentar para obtener resultados de la CPU y comparar con estos los de la GPU
+#define TIEMPOS // Comentar para obtener resultados de la CPU y comparar con estos los de la GPU
 
 #define BLOCK_SIZE_1D 256
 #define BLOCK_SIZE_2D 16
@@ -330,6 +330,7 @@ int main(int argc, char *argv[]) {
   Tgpu2DShared = (Tgpu2DShared - T) / CLOCKS_PER_SEC;
   cout << "Tiempo gastado GPU (2D Shared) = " << Tgpu2DShared << endl;
 
+#ifndef TIEMPOS
   //************************************************************************************************
   // GPU phase (2D Shared Memory V2)
 
@@ -364,7 +365,6 @@ int main(int argc, char *argv[]) {
   Tgpu2DSharedV2 = (Tgpu2DSharedV2 - T) / CLOCKS_PER_SEC;
   cout << "Tiempo gastado GPU (2D Shared V2) = " << Tgpu2DSharedV2 << endl;
 
-#ifndef TIEMPOS
   //************************************************************************************************
   // CPU phase
 
