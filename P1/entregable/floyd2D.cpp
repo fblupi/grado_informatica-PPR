@@ -5,7 +5,7 @@
 #include "Graph.h"
 #include "mpi.h"
 
-#define PRINT_ALL
+//#define PRINT_ALL
 
 using namespace std;
 
