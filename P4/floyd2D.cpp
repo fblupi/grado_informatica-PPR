@@ -13,8 +13,8 @@
 using namespace std;
 
 int main(int argc, char *argv[]) {
-  int procs, sqrtP, tamaBloque, nverts, i, j, k, ij, *M, *colK, *filK, id,
-      iIni, iFin, jIni, jFin, iGlobal, jGlobal, nvertsPorK, nvertsPorI, idEntreSqrtP, idModuloSqrtP;
+  int procs, sqrtP, tamaBloque, nverts, i, j, k, ij, *M, id, iIni, iFin, jIni, jFin,
+      nvertsPorK, nvertsPorI, idEntreSqrtP, idModuloSqrtP;
   double t;
 
   switch(argc) {
@@ -50,12 +50,11 @@ int main(int argc, char *argv[]) {
 
   M = (int *) malloc(nverts * nverts * sizeof(int));    // Se reserva espacio en memoria para M
   G.copia_matriz(M);                                    // Se copia la matriz del grafo
-  colK = (int *) malloc(nverts * sizeof(int));
-  filK = (int *) malloc(nverts * sizeof(int));
+  int colK[nverts], filK[nverts];
 
   t = omp_get_wtime();
 
-  #pragma omp parallel private(id, i, j, k, ij, iIni, iFin, jIni, jFin, iGlobal, jGlobal, idEntreSqrtP, idModuloSqrtP, nvertsPorK, nvertsPorI) // inicio de la región paralela
+  #pragma omp parallel private(id, i, j, k, ij, iIni, iFin, jIni, jFin, idEntreSqrtP, idModuloSqrtP, nvertsPorK, nvertsPorI) // inicio de la región paralela
   {
     id = omp_get_thread_num();
     idEntreSqrtP = id / sqrtP;
