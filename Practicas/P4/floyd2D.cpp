@@ -66,8 +66,8 @@ int main(int argc, char *argv[]) {
     for (k = 0; k < nverts; k++) {
       #pragma omp barrier
       if (k >= iIni && k < iFin) { // La fila K pertenece al proceso
+        nvertsPorK = k * nverts;
         for (i = 0; i < nverts; i++) {
-          nvertsPorK = k * nverts;
           filK[i] = M[nvertsPorK + i];
         }
       }

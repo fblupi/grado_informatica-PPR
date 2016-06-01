@@ -46,17 +46,27 @@ int main(int argc, char *argv[]) {
 
   M = (int *) malloc(nverts * nverts * sizeof(int));    // Se reserva espacio en memoria para M
   G.copia_matriz(M);                                    // Se copia la matriz del grafo
+  int filK[nverts];
 
   t = omp_get_wtime();
-  for (k = 0; k < nverts; k++) {
-    #pragma omp parallel for schedule(static, chunk) private(i, j, ik, ij, kj)  // inicio de la región paralela, reparto estático por bloques
-    for (i = 0; i < nverts; i++) {
-      ik = i * nverts + k;
-      for (j = 0; j < nverts; j++) {
-        if (i != j && i != k && j != k) {
-          kj = k * nverts + j;
-          ij = i * nverts + j;
-          M[ij] = min(M[ik] + M[kj], M[ij]);
+  #pragma omp parallel private(k, i, j, ik, ij, kj, filK)
+  {
+    for (k = 0; k < nverts; k++) {
+      #pragma omp single copyprivate(filK)
+      {
+        for (i = 0; i < nverts; i++) {
+          filK[i] = M[k * nverts + i];
+        }
+      }
+      #pragma omp for schedule(static, chunk)  // inicio de la región paralela, reparto estático por bloques
+      for (i = 0; i < nverts; i++) {
+        ik = i * nverts + k;
+        for (j = 0; j < nverts; j++) {
+          if (i != j && i != k && j != k) {
+            kj = k * nverts + j;
+            ij = i * nverts + j;
+            M[ij] = min(M[ik] + filK[j], M[ij]);
+          }
         }
       }
     }
