@@ -4,7 +4,7 @@
 #include <time.h>
 #include "Graph.h"
 
-#define TIEMPOS // Comentar para obtener resultados de la CPU y comparar con estos los de la GPU
+//#define TIEMPOS // Comentar para obtener resultados de la CPU y comparar con estos los de la GPU
 
 #define BLOCK_SIZE_1D 256
 #define BLOCK_SIZE_2D 16
@@ -68,11 +68,7 @@ __global__ void floyd_kernel1DShared(int * d_M, const int nverts, const int k) {
     __syncthreads();
 
     if (i != j && i != k && j != k) {
-      if (i == blockRow) {
-        d_M[g_ij] = min(s_Mik[0] + s_Mk[l_ij], s_Mi[l_ij]);
-      } else {
-        d_M[g_ij] = min(s_Mik[1] + s_Mk[l_ij], s_Mi[l_ij]);
-      }
+      d_M[g_ij] = min(s_Mik[i != blockRow] + s_Mk[l_ij], s_Mi[l_ij]);
     }
   }
 }
