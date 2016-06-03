@@ -20,6 +20,9 @@ double f(int n) {
   return result;
 }
 
+/**************************************************************************************************/
+/**************************************************************************************************/
+
 int main(int argc, char *argv[]) {
   int P, N, i;
   double t;
@@ -35,8 +38,8 @@ int main(int argc, char *argv[]) {
       cerr << "Sintaxis: " << argv[0] << " <num iters> <num procs>" << endl;
       return(-1);
   }
-  omp_set_num_threads(P);
 
+  omp_set_num_threads(P);
   N = atoi(argv[1]);
 
   /************************************************************************************************/
@@ -62,6 +65,31 @@ int main(int argc, char *argv[]) {
   t = omp_get_wtime() - t;
 
   cout << "Tiempo gastado (static cíclico) = " << t << endl;
+
+  /************************************************************************************************/
+  // Static dynamic
+
+  t = omp_get_wtime();
+  #pragma omp parallel for schedule(dynamic)
+  for (i = 0; i < N; i++) {
+    f(i);
+  }
+  t = omp_get_wtime() - t;
+
+  cout << "Tiempo gastado (dynamic) = " << t << endl;
+
+  /************************************************************************************************/
+  // Static guided
+
+  t = omp_get_wtime();
+  #pragma omp parallel for schedule(guided)
+  for (i = 0; i < N; i++) {
+    f(i);
+  }
+  t = omp_get_wtime() - t;
+
+  cout << "Tiempo gastado (guided) = " << t << endl;
+
 
 
 
