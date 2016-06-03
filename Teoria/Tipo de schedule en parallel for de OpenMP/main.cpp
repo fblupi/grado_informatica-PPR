@@ -32,20 +32,38 @@ int main(int argc, char *argv[]) {
       P = omp_get_num_procs();
       break;
     default: // número incorrecto de parámetros => se termina la ejecución
-      cerr << "Sintaxis: " << argv[0] << "<num iters> <num procs>" << endl;
+      cerr << "Sintaxis: " << argv[0] << " <num iters> <num procs>" << endl;
       return(-1);
   }
   omp_set_num_threads(P);
 
   N = atoi(argv[1]);
 
+  /************************************************************************************************/
+  // Static por bloques
+
   t = omp_get_wtime();
+  #pragma omp parallel for schedule(static, N / P)
   for (i = 0; i < N; i++) {
     f(i);
   }
   t = omp_get_wtime() - t;
 
-  cout << "Tiempo gastado = " << t << endl << endl;
+  cout << "Tiempo gastado (static por bloques) = " << t << endl;
+
+  /************************************************************************************************/
+  // Static cíclico
+
+  t = omp_get_wtime();
+  #pragma omp parallel for schedule(static, 1)
+  for (i = 0; i < N; i++) {
+    f(i);
+  }
+  t = omp_get_wtime() - t;
+
+  cout << "Tiempo gastado (static cíclico) = " << t << endl;
+
+
 
   return(0);
 }
