@@ -6,11 +6,11 @@
 using namespace std;
 
 /**
-  * Función que en n iteraciones realiza cuatro operaciones:
-  * - asignación
+  * Funcion que en n iteraciones realiza cuatro operaciones:
+  * - asignacion
   * - suma
   * - potencia
-  * - módulo
+  * - modulo
   */
 double f(int n) {
   double result = 0;
@@ -20,21 +20,20 @@ double f(int n) {
   return result;
 }
 
-/**************************************************************************************************/
-/**************************************************************************************************/
+/***********************************************************************/
 
 int main(int argc, char *argv[]) {
   int P, N, i;
   double t;
 
   switch(argc) {
-    case 3: // se especifica el número de procesadores
+    case 3: // se especifica el numero de procesadores
       P = atoi(argv[2]);
       break;
-    case 2: // no se especifica el número de procesadores => se usan todos los que tenga el equipo
+    case 2: // no se especifica el numero de procesadores => se usan todos los que tenga el equipo
       P = omp_get_num_procs();
       break;
-    default: // número incorrecto de parámetros => se termina la ejecución
+    default: // numero incorrecto de parametros => se termina la ejecucion
       cerr << "Sintaxis: " << argv[0] << " <num iters> <num procs>" << endl;
       return(-1);
   }
@@ -42,7 +41,7 @@ int main(int argc, char *argv[]) {
   omp_set_num_threads(P);
   N = atoi(argv[1]);
 
-  /************************************************************************************************/
+  /*********************************************************************/
   // Static por bloques
 
   t = omp_get_wtime();
@@ -54,8 +53,8 @@ int main(int argc, char *argv[]) {
 
   cout << "Tiempo gastado (static por bloques) = " << t << endl;
 
-  /************************************************************************************************/
-  // Static cíclico
+  /*********************************************************************/
+  // Static ciclico
 
   t = omp_get_wtime();
   #pragma omp parallel for schedule(static, 1)
@@ -64,13 +63,13 @@ int main(int argc, char *argv[]) {
   }
   t = omp_get_wtime() - t;
 
-  cout << "Tiempo gastado (static cíclico) = " << t << endl;
+  cout << "Tiempo gastado (static ciclico) = " << t << endl;
 
-  /************************************************************************************************/
+  /*********************************************************************/
   // Static dynamic
 
   t = omp_get_wtime();
-  #pragma omp parallel for schedule(dynamic)
+  #pragma omp parallel for schedule(dynamic, 1)
   for (i = 0; i < N; i++) {
     f(i);
   }
@@ -78,20 +77,17 @@ int main(int argc, char *argv[]) {
 
   cout << "Tiempo gastado (dynamic) = " << t << endl;
 
-  /************************************************************************************************/
+  /*********************************************************************/
   // Static guided
 
   t = omp_get_wtime();
-  #pragma omp parallel for schedule(guided)
+  #pragma omp parallel for schedule(guided, 1)
   for (i = 0; i < N; i++) {
     f(i);
   }
   t = omp_get_wtime() - t;
 
   cout << "Tiempo gastado (guided) = " << t << endl;
-
-
-
 
   return(0);
 }
